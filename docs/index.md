@@ -1,6 +1,6 @@
 # Welcome
 
-## [Writing](./blog/posts/index.md)
+## [Writing](./blog/posts/)
 
 
 
