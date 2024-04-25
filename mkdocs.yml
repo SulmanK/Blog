@@ -3,4 +3,4 @@ theme:
   name: material
 plugins:
   - blog:
-    #blog_dir: blog
+    blog_dir: .
