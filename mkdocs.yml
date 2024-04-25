@@ -61,10 +61,61 @@ theme:
     - search.share
     - search.suggest
     - toc.follow
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: sulmank 
+      repo: blog
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.arithmatex:
+      generic: true
+  
+  
+
+
+
+
+
 
 plugins:
   - blog:
       blog_dir: blog
   - minify:
       minify_html: true
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            members_order: alphabetical
+            allow_inspection: true
+            show_bases: true
   
