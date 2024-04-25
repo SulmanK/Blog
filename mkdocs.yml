@@ -2,4 +2,5 @@ site_name: My Docs
 theme:
   name: material
 plugins:
-  - blog
+  - blog:
+    blog_dir: .
