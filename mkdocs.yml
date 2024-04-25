@@ -1,4 +1,6 @@
 site_name: SulmanK Blog
+repo_url: https://github.com/jxnl/blog/
+repo_name: blog
 theme:
   name: material
   icon:
@@ -99,16 +101,11 @@ markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
   
-  
-
-
-
-
-
-
 plugins:
   - blog:
       blog_dir: blog
+      blog_toc: true
+      post_dir: blog/posts
   - minify:
       minify_html: true
   - mkdocstrings:
