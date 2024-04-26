@@ -103,8 +103,9 @@ markdown_extensions:
   
 plugins:
   - blog:
-      blog_dir: . 
+      blog_dir: writing 
       blog_toc: true
+      post_dir: writing/posts
   - minify:
       minify_html: true
   - mkdocstrings:
