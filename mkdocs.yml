@@ -105,7 +105,6 @@ plugins:
   - blog:
       blog_dir: . 
       blog_toc: true
-      post_dir: blog/posts
   - minify:
       minify_html: true
   - mkdocstrings:
