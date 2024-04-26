@@ -103,7 +103,7 @@ markdown_extensions:
   
 plugins:
   - blog:
-      blog_dir: blog
+      blog_dir: . 
       blog_toc: true
       post_dir: blog/posts
   - minify:
