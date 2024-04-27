@@ -28,10 +28,6 @@ The purpose of this blog post is to go over the exploratory data analysis of thi
 - Functions
     * Plot Functions
     * Feature Functions
-        * Article
-        - User
-        - Topic
-        - Activity
 - Feature Analysis
     - Overall Feature Analysis
     - Article
@@ -39,10 +35,7 @@ The purpose of this blog post is to go over the exploratory data analysis of thi
     - Session
     - Topic
     - Devices
-    - Subscriber vs Non-Subscriber
-    - Gender
     - Age
-    - Postcodes
 
 
 !!! note "Key Metrics" 
@@ -80,12 +73,440 @@ df_bev = pd.read_parquet("Data/Small/train/behaviors.parquet")
 # History
 df_his = pd.read_parquet("Data/Small/train/history.parquet")
 ```
-Now, how can we join these data sources together?
+How can we join these data sources together? We see there are columns shared amongst each of these data sources that we can join on.
+We will have to adjust the `behaviors['articles_id_clicked']` feature before we can merge them together.
 
 * **Articles** <> Article ID <> **Behavior**
 * **History** <> User ID <> **Behavior**
 
-Stop for now
+
+```python
+# Convert datatype of column first
+df_bev['article_ids_clicked'] = df_bev['article_ids_clicked'].apply(
+    lambda x: x[0])
+
+# Join bevhaiors to article
+df = df_bev.join(df_art.set_index("article_id"), on="article_ids_clicked")
+
+# Join bevhaiors to history
+df = df.join(df_his.set_index("user_id"), on="user_id")
+
+# Drop all other dataframes from me
+df_bev = []
+df_his = []
+df_art = []
+```
+Finally, we'll preprocess more of the columns by changing the gender column from a float to a str, postcodes from a float to a str, article id from a str to int, and age is an age range, so we made it to a str.
+
+```python
+def gender_(x):
+    """ 
+    Changes the gender input from a float to a str
+    Keyword arguments:
+        x -- float
+    Output:
+        str
+    """
+    if x == 0.0:
+        return 'Male'
+    elif x == 1.0:
+        return 'Female'
+    else:
+        return None
+
+
+def postcodes_(x):
+    """ 
+    Changes the postcodes input from a float to a str
+    Keyword arguments:
+        x -- float
+    Output:
+        str
+    """
+    if x == 0.0:
+        return 'Metropolitan'
+    elif x == 1.0:
+        return 'Rural District'
+
+    elif x == 2.0:
+        return 'Municipality'
+
+    elif x == 3.0:
+        return 'Provincial'
+
+    elif x == 4.0:
+        return 'Big City'
+
+    else:
+        return None
+
+# Preprocessing
+df.dropna(subset=['article_id'], inplace=True)
+
+# Change article IDs into int
+df['article_id'] = df['article_id'].apply(lambda x: int(x))
+df['article_id'] = df['article_id'].astype(np.int64)
+
+# Change genders from float to strings
+df['gender'] = df['gender'].apply(lambda x: gender_(x))
+
+# Change age to str it's a range
+df['age'] = df['age'].astype('Int64')
+df['age'] = df['age'].astype(str)
+df['age'] = df['age'].apply(
+    lambda x: x if x == '<NA>' else x + ' - ' + x[0] + '9')
+
+
+# Change postcodes from int to str
+df['postcode'] = df['postcode'].apply(lambda x: postcodes_(x))
+```
+
+# Functions
+This section is split in two different types of Functions used for the analysis: Functions to produce the visualizations and functions used in each of the feature selection to get the features in ready for visualization.
+
+## Plot Functions
+Functions to produce the following:
+
+- single and multiple categorical bar plots
+- single and multiple categorical histogram, box, and bar plots
+- Measure how feature relate to activity (scatter plot: frequency vs time)
+
+The following below is an example of the code written for a function. 
+
+```python
+def multiple_subset_feature_visualization(
+    df_,
+    feature_1, feature_2,
+    feature_2_title, feature_1_title,
+    histogram_xaxis_title
+    ) -> "Graph":
+    """ 
+    Displays multiple plots: Histogram, Box, and Bar plots based on multiple features given.
+    Keyword arguments:
+        df_ -- list
+        feature_1 -- str
+        feature_2 -- str
+        feature_1_title -- str
+        feature_2_title -- str
+        histogram_xaxis_title -- str
+    Output: 
+        Plotly graph object!
+    """
+
+    # Make subplots object
+    fig = make_subplots(
+        rows=3, cols=1, subplot_titles=("<b>Histogram<b>", "<b>Box plot<b>", "<b>Average {} for {}<b>".format(feature_2_title, feature_1_title))
+    )
+
+    # Assign tmp_df based on feature
+    if feature_1 == 'age':
+        tmp_df = df_[df_['age'] != '<NA>']
+    else:
+        tmp_df = df_[~df_[feature_1].isnull()]
+
+    # Create a category list from the feature given 
+    categories = [d for d in tmp_df[feature_1].unique()]
+    categories.sort()
+
+    # Iterate through each category and produce a histogram, boxplot, and bar plots for that subset of the data
+    for category_ in categories:
+        subset_feature_2 = tmp_df[tmp_df[feature_1]== category_][feature_2].values
+        avg = round(float(tmp_df[tmp_df[feature_1] == category_][feature_2].mean()), 3)
+        # Add histogram
+        fig.add_trace(
+            go.Histogram(
+                x=subset_feature_2,
+                name=str(category_) + ' Histogram',
+            ),
+            row=1, col=1
+        )
+        # Add Boxplot
+        # Need to create an array that is similar to the array used in subset_feature_2, to name the traces!
+        xo = [str(category_) for x in range(0, len(subset_feature_2))]
+        fig.add_trace(
+            go.Box(
+                y=subset_feature_2, x=xo,
+                name=str(category_) + ' Box',
+            ),
+            row=2, col=1
+        )
+
+        # Add Bar
+        fig.add_trace(
+            go.Bar(
+                x=[str(category_)], y=[avg],
+                text='<b>{}<b>'.format(avg),
+                textposition='outside',
+                name=str(category_) + ' Bar',
+                textfont=dict(
+                    family='sans serif',
+                    size=18,
+                    color='#1f77b4'
+                )
+            ),
+            row=3, col=1
+        )
+
+    # Update xaxis properties
+    fig.update_xaxes(
+        title_text='<b>{}<b>'.format(str(histogram_xaxis_title)), row=1, col=1
+    )
+    fig.update_xaxes(
+        title_text='<b>{}<b>'.format(str(feature_1_title)), row=2, col=1
+    )
+    fig.update_xaxes(
+        title_text='<b>{}<b>'.format(str(feature_1_title)), row=3, col=1
+    )
+
+    # Update yaxis properties
+    fig.update_yaxes(
+        title_text='<b>Count<b>', row=1, col=1, type = 'log'
+    )
+    fig.update_yaxes(
+        title_text='<b>{}<b>'.format(str(feature_2_title)), row=2, col=1, type ='log'
+    )
+    fig.update_yaxes(
+        title_text='<b>{}<b>'.format(str(feature_2_title)),
+        range=[0, 125], row=3, col=1
+    )
+
+    # Update subplot title sizes
+    fig.update_annotations(
+        font_size=20,
+    )
+
+    # Update title and height
+    fig.update_layout(
+        title_text="<b>Distributions of {} for {}<b>".format(
+            feature_2_title, feature_1_title),
+        height=750, width=1000,
+        font=dict(
+            family="Courier New, monospace",
+            size=16,
+        )
+    )
+
+    return fig
+```
+
+## Feature Functions
+These are helper functions used to get these features ready to be put in the visualization functions!
+They are designed for specific features:
+
+- Article
+- User
+- Topic 
+
+A snippet belows shows an example used.
+
+```python
+def populate_dict(list_, dict_):
+    """ 
+    Populates the dict from list indices
+    Keyword arguments:
+        list_--  list
+        dict_ -- dict: 
+    Output: 
+        None
+    """
+    # Iterate through each list index and append the index as a key 
+    for idx in list_:
+        if idx not in dict_:
+            dict_[idx] = 1
+        else:
+            dict_[idx] += 1
+```
+
+# Feature Analysis
+We aim to gain insights into which features we can utilize for our recommendation system. This is will be a brief analysis, the notebook contains more feature analysis.
+
+Questions:
+
+1. Explore the following features.
+    - Article
+    - User
+    - Session
+    - Topic
+    - Devices
+    - Ages
+    - Postcodes
+
+2. What are features that describe an article?
+    - Topic
+    - Read Time
+    - Scroll Percentage
+    - How do the features above relate to others?
+
+4. Describe the activity of our users? Subset it across our categorical features such as ages, devices, gender, postcodes, etc.
+    - Daily
+    - Hourly
+    - Weekly
+    - Day of the week
+
+5. Describe the topic distribution across our categorical features such as ages, devices, and postcodes. 
+
+## Overall Feature Analysis
+
+First, we'll begin with the total number of impressions in this dataset. 
+```python
+# Number of Impressions
+single_subset_bar(df_=df, feature_='impression_id',
+                  xaxis_title='Number of Impressions', yrange=[0, 80000])
+```
+
+![](./img/numberofimpressionstest.png)
+
+Next, let's look at the distribution read time across all users.
+```python
+# Distribution of Read Times
+single_subset_feature_visualization(
+    df_=df, feature_='read_time', data_title='All Users',
+    feature_title='Read Time(s)', histogram_xaxis_title='Read Time(s)')
+```
+![](./img//rtforallimpressions.png)
+
+
+Then, distribution of scroll percentages across all users
+```python
+# Distribution of Scroll Percentages
+single_subset_feature_visualization(
+    df_=df, feature_='scroll_percentage', data_title='All Users',
+    feature_title='Scroll Percentage(%)', histogram_xaxis_title='Scroll Percentage(%)')
+```
+
+
+![](./img/spforallimpressions.png)
+
+## Article
+
+Number of articles
+```python
+# Total Number of Articles
+single_subset_bar(df_ = df, feature_ = 'article_id', xaxis_title = 'Number of Articles', yrange = [0, 2000])
+```
+
+![](./img/numberofarticles.png)
+
+
+Number of articles clicked in a session
+```python
+# How many unique articles are clicked in a session?
+
+# Group by sessions and get the article ids
+tmp_aps = df.groupby('session_id')['article_id'].apply(list)
+
+# Create a dict to store the count of articles per session
+articles_per_session = {k: 0 for k in range(1, 20)}
+
+# Iterate through our list previously, and record the number of articles in a session to our res dict
+for i in tmp_aps:
+    num_articles = len(i)
+    articles_per_session[num_articles] += 1
+
+# Set as our indices / values for plot
+indices = [k for k in articles_per_session.keys()]
+values = [k for k in articles_per_session.values()]
+
+# Plot
+plot_bar(
+    indices_=indices, values_=values,
+    yrange_=[0, 5], xaxis_title='Number of Articles ',
+    yaxis_title='Count', title_='<b> Number of Articles clicked in a session<b>')
+```
+![](./img/numberofarticlesclickedinasession.png)
+
+Recording the average read time and scroll percentage across each article.
+
+```python
+# Get the average readtime and scroll percentages for all articles!
+
+# Unique User Ids
+unique_user_ids = df['user_id'].values[0:1000]
+# We take the set because the scroll, article per user is joined in a list for every user id (so just take the set of it!)
+unique_user_ids = set(unique_user_ids)
+# Unique Article Ids
+unique_article_ids = df['article_id'].unique()
+unique_article_ids = unique_article_ids[~np.isnan(unique_article_ids)]
+# Create dictionaries
+unique_article_read = {k: [0] for k in unique_article_ids}
+unique_article_read_avg = {k: [0] for k in unique_article_ids}
+unique_article_scroll = {k: [0] for k in unique_article_ids}
+unique_article_scroll_avg = {k: [0] for k in unique_article_ids}
+
+# Iterate across each user id
+for id in unique_user_ids:
+    # Get the subset of that user id
+    tmp_df = df[df['user_id'] == id]
+    # Now lets go through each scroll and article
+    indices = np.array(tmp_df.index)
+    for i in indices:
+        tmp_dict = {}
+        # Select the scroll / article of that indice and
+        tmp_read = tmp_df['read_time_fixed'][i]
+        tmp_article = tmp_df['article_id_fixed'][i]
+        tmp_scroll = tmp_df['scroll_percentage_fixed'][i]
+        # Create list objects for article, read, scroll
+        read = [x for x in tmp_read]
+        scroll = [x for x in tmp_scroll]
+        articles = [np.int64(x) for x in tmp_article]
+        # Populate our unique_article_read dictionary based on the results found in our previous list objects
+        tmp_articles_read = {k: v for k, v in zip(articles, read)}
+        article_id_read_scroll(tmp_articles_read, unique_article_read)
+        # Populate our unique_article_scroll dictionary based on the results found in our previous list objects
+        tmp_articles_scroll = {k: v for k, v in zip(articles, scroll)}
+        article_id_read_scroll(tmp_articles_scroll, unique_article_scroll)
+
+# Get the average scroll percentage and read times for each article
+for k, v in zip(unique_article_read.keys(), unique_article_read.values()):
+    unique_article_read_avg[k] = np.mean(v)
+for k, v in zip(unique_article_scroll.keys(), unique_article_scroll.values()):
+    unique_article_scroll_avg[k] = np.mean(v)
+```
+
+Average read time of each article
+```python
+# Distribution of Read Times for each Article
+## Indices / Values
+indices = ['<b>All Unique Articles<b>']
+values = [x for x in unique_article_read_avg.values()]
+## Plot
+plot_box(
+    indices_=indices, values_=[values],
+    yrange_=[0, 3], xaxis_title='',
+    yaxis_title='Read Time(s)', title_='<b> Distributions of Read Times Across Each Topic<b>')
+```
+![](./img/rtforarticles.png)
+
+Average scroll percenage of each article
+```python
+# Distribution of Scroll Percentages for each Article
+## Indices / Values
+indices = ['<b>All Unique Articles<b>']
+values = [x for x in unique_article_scroll_avg.values()]
+## Plot
+plot_box(
+    indices_=indices, values_=[values],
+    yrange_=[0, 2], xaxis_title='',
+    yaxis_title='Scroll Percentage (%)', title_='<b> Distributions of Scroll Percentage Across All Articles!<b>')
+```
+![](./img/rtforarticles.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
