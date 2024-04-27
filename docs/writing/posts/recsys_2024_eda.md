@@ -96,9 +96,24 @@ df_bev = []
 df_his = []
 df_art = []
 ```
-Finally, we'll preprocess more of the columns by changing the gender column from a float to a str, postcodes from a float to a str, article id from a str to int, and age is an age range, so we made it to a str.
+Finally, we'll preprocess more of the columns by changing device_type column from an int to a str, gender from a float to a str, postcodes from a float to a str, article id from a str to int, and age is an age range, so we made it to a str.
 
 ```python
+def device_(x):
+    """ 
+    Changes the device input from a int to a str
+    Keyword arguments:
+        x -- int
+    Output:
+        str
+    """
+    if x == 1:
+        return 'Desktop'
+    elif x == 2:
+        return 'Mobile'
+    else:
+        return 'Tablet'
+
 def gender_(x):
     """ 
     Changes the gender input from a float to a str
@@ -147,7 +162,10 @@ df.dropna(subset=['article_id'], inplace=True)
 df['article_id'] = df['article_id'].apply(lambda x: int(x))
 df['article_id'] = df['article_id'].astype(np.int64)
 
-# Change genders from float to strings
+# Change age from int to string
+df['device_type'] = df['device_type'].apply(lambda x: device_(x))
+
+# Change genders from float to string
 df['gender'] = df['gender'].apply(lambda x: gender_(x))
 
 # Change age to str it's a range
@@ -347,7 +365,7 @@ Questions:
 
 ## Overall Feature Analysis
 
-First, we'll begin with the total number of impressions in this dataset. 
+### What is the total number of impressions in this data?
 ```python
 # Number of Impressions
 single_subset_bar(df_=df, feature_='impression_id',
@@ -356,7 +374,7 @@ single_subset_bar(df_=df, feature_='impression_id',
 
 ![](./img/numberofimpressionstest.png)
 
-Next, let's look at the distribution read time across all users.
+### How does the distribution of read times look like?
 ```python
 # Distribution of Read Times
 single_subset_feature_visualization(
@@ -366,7 +384,7 @@ single_subset_feature_visualization(
 ![](./img//rtforallimpressions.png)
 
 
-Then, distribution of scroll percentages across all users
+### How does the distribution of scroll percentages look like?
 ```python
 # Distribution of Scroll Percentages
 single_subset_feature_visualization(
@@ -379,7 +397,7 @@ single_subset_feature_visualization(
 
 ## Article
 
-Number of articles
+### How many articles are present in this data?
 ```python
 # Total Number of Articles
 single_subset_bar(df_ = df, feature_ = 'article_id', xaxis_title = 'Number of Articles', yrange = [0, 2000])
@@ -388,7 +406,7 @@ single_subset_bar(df_ = df, feature_ = 'article_id', xaxis_title = 'Number of Ar
 ![](./img/numberofarticles.png)
 
 
-Number of articles clicked in a session
+### How many articles are clicked in a singled session?
 ```python
 # How many unique articles are clicked in a session?
 
@@ -415,7 +433,7 @@ plot_bar(
 ```
 ![](./img/numberofarticlesclickedinasession.png)
 
-Recording the average read time and scroll percentage across each article.
+### What is the average read time and scroll percentage for each article?
 
 ```python
 # Get the average readtime and scroll percentages for all articles!
@@ -463,7 +481,7 @@ for k, v in zip(unique_article_scroll.keys(), unique_article_scroll.values()):
     unique_article_scroll_avg[k] = np.mean(v)
 ```
 
-Average read time of each article
+#### Average read time of each article
 ```python
 # Distribution of Read Times for each Article
 ## Indices / Values
@@ -477,7 +495,7 @@ plot_box(
 ```
 ![](./img/rtforarticles.png)
 
-Average scroll percenage of each article
+#### Average scroll percenage of each article
 ```python
 # Distribution of Scroll Percentages for each Article
 ## Indices / Values
@@ -490,6 +508,759 @@ plot_box(
     yaxis_title='Scroll Percentage (%)', title_='<b> Distributions of Scroll Percentage Across All Articles!<b>')
 ```
 ![](./img/rtforarticles.png)
+
+## User
+
+### What is the total number of users?
+
+```python
+# Total Number of Users
+single_subset_bar(df_ = df, feature_ = 'user_id', xaxis_title = 'Number of Users', yrange = [0, 11000])
+```
+![](./img/totalnumberofusers.png)
+
+### Describe the behavior of daily user growth?
+```python
+# Record the daily user growth
+unique_user_ids = df['user_id'].unique()
+
+# Create dictionaries
+unique_users_daily_growth_freq= {}
+unique_users_hourly_freq = {}
+unique_users_dayofweek_freq = {}
+unique_users_weekly_freq = {}
+
+# Iterate through each user id and record the number of unique users present!
+for id in unique_user_ids[0:1000]:
+    # Get the subset of that user id
+    tmp_df = df[df['user_id'] == id]
+    # Get the first index of that impression time
+    first_index = tmp_df['impression_time_fixed'].index[0]
+    # Record that join_date 
+    tmp_datetime = pd.DatetimeIndex(tmp_df['impression_time_fixed'][first_index])
+    tmp_date = tmp_datetime[0].date()
+    join_date = tmp_date
+    # Populate our unique_user_daily_growth
+    if join_date not in unique_users_daily_growth_freq:
+        unique_users_daily_growth_freq[join_date] = 1
+    else:
+        unique_users_daily_growth_freq[join_date] +=1
+
+# Sort our dict
+unique_users_daily_growth_freq = dict(sorted(unique_users_daily_growth_freq.items()))
+
+
+# Indices / Values for Plot
+indices = [x for x in unique_users_daily_growth_freq.keys()]
+values = [x for x in unique_users_daily_growth_freq.values()]
+# Plot
+plot_bar(indices_=indices, values_=values, yrange_=[
+         0, 3], xaxis_title='<b>Dates<b>', yaxis_title='<b>Count<b>', title_='<b>Daily User Growth<b>')
+```
+
+![](./img/dug.png)
+
+### What is the average read time across each unique user?
+```python
+# Read Time per User
+
+# Group by User and Read Time
+tmp_user_df = pd.DataFrame(data=df.groupby(by='user_id')[
+                           'read_time'].mean(), columns=['read_time'])
+# Plot
+single_subset_feature_visualization(
+    df_=tmp_user_df,  feature_='read_time',
+    data_title='Unique Users', feature_title ='Read Time(s)',
+    histogram_xaxis_title = 'Read Time(s)')
+```
+![](./img/artuser.png)
+
+### What is the average scroll percentage across each unique user?
+
+```python
+# Scroll Percentage per User
+
+# Group by User and Scroll Percentage
+tmp_user_df = pd.DataFrame(data=df.groupby(by='user_id')[
+                           'scroll_percentage'].mean(), columns=['scroll_percentage'])
+# Plot
+single_subset_feature_visualization(
+    df_=tmp_user_df,  feature_='scroll_percentage',
+    data_title='Unique Users', feature_title ='Scroll Percentage(%)',
+    histogram_xaxis_title = 'Scroll Percentage(%)')
+```
+
+![](./img/aspuser.png)
+
+### How does the user activity look like?
+```python
+# Record the daily, hourly, weekly, dayofweek activity across all users
+
+# Get all unique ids in a list
+unique_user_ids = df['user_id'].unique()[0:1000]
+
+# Create dictionaries
+unique_users_daily_freq = {}
+unique_users_hourly_freq = {}
+unique_users_dayofweek_freq = {}
+unique_users_weekly_freq = {}
+
+# Iterate through each user id
+for id in unique_user_ids:
+    # Get the subset of that user id
+    tmp_df = df[df['user_id'] == id]
+
+    # Now lets go through each and populate the unique dates, hours and day of the week for each user
+    dates = []
+    hours = []
+    dayofweek = []
+    week = []
+    indices = np.array(tmp_df.index)
+
+    # Iterate through each index
+    for i in indices:
+        # Store the date, time, dayofweek, and week number
+        tmp_datetime = pd.DatetimeIndex(tmp_df['impression_time_fixed'][i])
+        tmp_date = tmp_datetime.date
+        tmp_time = tmp_datetime.time
+        tmp_dayofweek = tmp_datetime.weekday
+        tmp_week = tmp_datetime.isocalendar().week
+        # Append our dates, hours, dayofweek, week number
+        for j, k, l, m in zip(tmp_date, tmp_time, tmp_dayofweek, tmp_week):
+            dates.append(j)
+            hours.append(k)
+            dayofweek.append(l)
+            week.append(m)
+
+    # Get rid of duplicate values
+    unique_dates = list(set(dates))
+    unique_hours = list(set(hours))
+    unique_dayofweek = list(set(dayofweek))
+    unique_week = list(set(week))
+
+    # Convert to string
+    unique_hours = [x.hour for x in unique_hours]
+    unique_hours = [str(i) + ':00' if i > 9 else str(0) +
+                    str(i) + ':00' for i in unique_hours]
+
+    # Convert the week int to mapping from 1++
+    unique_week = weekly_map(unique_week)
+
+    # Populate dicts
+    populate_dict(list_=unique_dates, dict_=unique_users_daily_freq)
+    populate_dict(list_=unique_hours, dict_=unique_users_hourly_freq)
+    populate_dict(list_=unique_dayofweek, dict_=unique_users_dayofweek_freq)
+    populate_dict(list_=unique_week, dict_=unique_users_weekly_freq)
+
+
+# Sort our dicts
+unique_users_daily_freq = dict(sorted(unique_users_daily_freq.items()))
+unique_users_hourly_freq = dict(sorted(unique_users_hourly_freq.items()))
+
+# Sort by integers for day of the week and then lets change the dict from int to str
+unique_users_dayofweek_freq = dict(sorted(unique_users_dayofweek_freq.items()))
+unique_users_dayofweek_freq = int_dow_dict(unique_users_dayofweek_freq)
+
+unique_users_weekly_freq = dict(sorted(unique_users_weekly_freq.items()))
+```
+
+#### Daily User Activity
+```python
+# Daily User Activity
+
+## Indices / Values for Plot
+indices = [x for x in unique_users_daily_freq.keys()]
+values = [x for x in unique_users_daily_freq.values()]
+
+## Plot
+plot_scatter(
+    indices_=indices, values_=values,
+    yrange_=[200, 900], xaxis_title='Date',
+    yaxis_title='Active Users', title_='<b>Daily Active Users<b>'
+)
+```
+![](./img/dau.png)
+
+#### Hourly User Activity
+```python
+# Hourly User Activity
+
+## Indices / Values for Plot
+indices = [x for x in unique_users_hourly_freq.keys()]
+values = [x for x in unique_users_hourly_freq.values()]
+
+## Plot
+plot_scatter(
+    indices_ = indices , values_ = values,
+    yrange_ = [0, 20000], xaxis_title = 'Hour',
+    yaxis_title= 'Active Users', title_ = '<b>Hourly Active Users<b>'
+    )
+```
+![](./img/hau.png)
+
+#### Weekly User Activity
+
+```python
+# Weekly User Activity
+
+## Indices / Values for Plot
+indices = [x for x in unique_users_weekly_freq.keys()]
+values = [x for x in unique_users_weekly_freq.values()]
+
+## Plot
+plot_bar(
+    indices_ = indices, values_ = values,
+    yrange_ = [0, 3.5], xaxis_title = 'Week',
+    yaxis_title= 'Active Users', title_ = '<b> Weekly Active Users <b>')
+```
+
+![](./img/wau.png)
+
+#### Day of the Week User Activity
+
+```python
+# Day Of The Week Activity
+
+## Indices / Values for Plot
+indices = [x for x in unique_users_dayofweek_freq.keys()]
+values = [x for x in unique_users_dayofweek_freq.values()]
+
+## Plot
+plot_bar(
+    indices_ = indices, values_ = values,
+    yrange_ = [0, 3.5], xaxis_title = 'Day',
+    yaxis_title= 'Active Users', title_ = '<b> Day of the Week Activity  <b>')
+```
+
+![](./img/dotwua.png)
+
+## Session
+
+### What are the total number of sessions?
+```python
+# Toal Number of Sessions
+single_subset_bar(df_=df, feature_='session_id',
+                  xaxis_title='Number of Sessions', yrange=[0, 40000])
+```
+
+![](./img/numberofsessions.png)
+
+### What are the number of unique sessions per day?
+
+```python
+# Number of unique sessions per day
+
+# Make a copy of the dataframe and extract the time as a str
+copy_df = df.copy()
+copy_df['impression_time'] = copy_df['impression_time'].apply(
+    lambda x: x.date())
+
+# Group by the session ids with the impression time
+unique_sessions_per_day = copy_df.groupby(
+    by='session_id')['impression_time'].min()
+tmp_dau_df = pd.DataFrame(data=unique_sessions_per_day.values,
+                          index=unique_sessions_per_day.keys(), columns=['Session Dates'])
+
+# Plot
+multiple_subset_bar(
+    df_=tmp_dau_df, feature_='Session Dates',
+    yrange=[0, 4.5], xaxis_title = 'Session Dates')
+```
+
+![](./img/das.png)
+
+### What is average read time and scroll percentage for each unique session?
+
+#### Read Time
+```python
+# Read Time per Session
+## Group by session ids and read_time 
+tmp_session_df = pd.DataFrame(data=df.groupby(by='session_id')[
+                              'read_time'].mean(), columns=['read_time'])
+## Plot
+single_subset_feature_visualization(
+    df_=tmp_session_df,  feature_='read_time',
+    data_title='Unique Sessions', feature_title = 'Read Time(s)',
+    histogram_xaxis_title ='Read Time(s)')
+```
+![](./img/artus.png)
+
+#### Scroll Percentage
+```python
+# Scroll Percentage per Session
+## Group by session ids and scroll percentage
+tmp_session_df = pd.DataFrame(data=df.groupby(by='session_id')[
+                              'scroll_percentage'].mean(), columns=['scroll_percentage'])
+## Plot
+single_subset_feature_visualization(
+    df_=tmp_session_df,  feature_='scroll_percentage',
+    data_title='Unique Sessions', feature_title = 'Scroll Percentage(%)',
+    histogram_xaxis_title ='Scroll Percentage(%)')
+```
+
+![](./img/aspus.png)
+
+## Topic
+
+### What is the total number of topics?
+
+```python
+# Number of Topics!
+# Unique Topics
+topic_list = unique_subset_topics(df)
+# Plot
+tmp_topic_df = pd.DataFrame(data=topic_list, columns=['topics'])
+
+single_subset_bar(df_=tmp_topic_df, feature_='topics',
+                  xaxis_title='Number of Topics', yrange=[0, 100])
+```
+![](./img/numberoftopics.png)
+
+### What are the top 10 most popular topics?
+
+```python
+# Record the frequency of topics across unique users, readtimes across topics, and scroll percentages across those topics
+
+# Get all unique ids in a list
+unique_user_ids = df['user_id'].values[0:1000]
+
+# Create dictionaries
+unique_users_topics_freq = {}
+unique_topic_scroll_freq = {}
+unique_topic_read_freq = {}
+
+# Iterate through each user id and record the topics viewed!
+for id in unique_user_ids:
+    # Get the subset of that user id
+    tmp_df = df[df['user_id'] == id]
+    # Now lets go through each topic
+    indices = np.array(tmp_df.index)
+    for i in indices:
+        # Record the topic, scroll percentage and read_time for each index
+        tmp_topics = tmp_df['topics'][i]
+        tmp_scroll = tmp_df['scroll_percentage'][i]
+        tmp_read = tmp_df['read_time'][i]
+        topics = [x for x in tmp_topics]
+        scroll = [tmp_scroll]
+        read = [tmp_read]
+
+    # Find the average scroll percentages across each topic  (Can be related to whether a topic doesnt require too much reading has visualizations)
+    # Look at article_id for whichever topics the article is included in add that scroll percentage
+        tmp_topic_scroll = {k: v for k, v in zip(topics, scroll)}
+        unique_topic_scroll_freq = topics_article_id_scroll_read(
+            tmp_topic_scroll, unique_topic_scroll_freq)
+
+    # Find the average read time across each topic
+    # Look at article_id for whichever topics the article is included in add that readtime
+        tmp_topic_read = {k: v for k, v in zip(topics, read)}
+        unique_topic_read_freq = topics_article_id_scroll_read(
+            tmp_topic_read, unique_topic_read_freq)
+
+    # Unique User Topics
+    # Get rid of duplicate values
+    unique_topics = list(set(topics))
+
+    # Populate our dict
+    populate_dict(unique_topics, unique_users_topics_freq)
+
+
+# Sort the dictionaries
+sorted_topic_freq = dict(
+    sorted(unique_users_topics_freq.items(), key=lambda x: x[1], reverse=True))
+
+# Find the average read times across each topic
+unique_topic_read_avg_freq = {k: round(np.nanmean(v), 2) for k, v in zip(
+    unique_topic_read_freq.keys(), unique_topic_read_freq.values())}
+sorted_unique_topic_read_avg_freq = dict(
+    sorted(unique_topic_read_avg_freq.items(), key=lambda x: x[1], reverse=True))
+
+# Sort the topics for distribution
+sorted_unique_topic_read_freq = dict(sorted(unique_topic_read_freq.items()))
+
+# Find the average scroll percentages across each topic
+unique_topic_scroll_avg_freq = {k: round(np.nanmean(v), 2) for k, v in zip(
+    unique_topic_scroll_freq.keys(), unique_topic_scroll_freq.values())}
+sorted_unique_topic_scroll_avg_freq = dict(
+    sorted(unique_topic_scroll_avg_freq.items(), key=lambda x: x[1], reverse=True))
+
+# Sort the topics scroll pct for distribution
+sorted_unique_topic_scroll_freq = dict(
+    sorted(unique_topic_scroll_freq.items()))
+
+# Distribution of Topics across users!
+## Indices / Values for Plot
+indices = [x for x in sorted_topic_freq.keys()][0:10]
+values = [x for x in sorted_topic_freq.values()][0:10]
+
+## Plot
+plot_bar(
+    indices_=indices, values_=values,
+    yrange_=[0, 3], xaxis_title='Topics',
+    yaxis_title='Count', title_='<b> Top 10 Highest Topic Activity<b>')
+```
+
+![](./img/top10topics.png)
+
+### Distribution of Read time across each topic
+``` python
+# Box Plot of Read Time across Topics
+## Indices / Values for Plot
+indices = [x for x in sorted_unique_topic_read_freq.keys()]
+values = [x for x in sorted_unique_topic_read_freq.values()]
+## Plot
+plot_box(
+    indices_ = indices, values_ = values,
+    yrange_ = [0, 3.5], xaxis_title = 'Topics',
+    yaxis_title= 'Read Time(s)', title_ = '<b> Distributions of Read Times across each Topic<b>')
+```
+![](./img/rtt_box.png)
+
+### Distribution of Scroll percentage across each topic
+```python
+# Box Plot of Scroll Percentage across Topics
+## Indices / Values for Plot
+indices = [x for x in sorted_unique_topic_scroll_freq.keys()]
+values = [x for x in sorted_unique_topic_scroll_freq.values()]
+## Plot
+plot_box(
+    indices_ = indices, values_ = values,
+    yrange_ = [0, 2.1], xaxis_title = 'Topics',
+    yaxis_title= 'Read Time(s)', title_ = '<b> Distributions of Read Times across each Topic<b>')
+```
+![](./img/spt_box.png)
+
+### How does each topic relate to daily and hourly activity?
+```python
+# Daily and Hourly Activity across each Topic
+
+# Get all the unique topics
+topic_list = unique_subset_topics(df)
+unique_topics = sorted(topic_list)
+
+# Get the list of each unqiue topic in a specific session
+topics = df.groupby(by='session_id')['topics'].apply(list)
+
+# Get the list of each unique timestamp for these sessions
+timestamps = df.groupby(by='session_id')['impression_time'].apply(list)
+unique_dates = []
+
+# Create a list of hours in a str format
+unique_hours = [i for i in range(24)]
+unique_hours = [str(i) + ':00' if i > 9 else str(0) +
+                str(i) + ':00' for i in unique_hours]
+
+# Iterate through each timestamp
+for i in range(len(timestamps.values)):
+    # Iterate through each idx
+    for j in range(len(timestamps.values[i])):
+        # Assign datetime and date objects
+        tmp_datetime = timestamps.values[i][j]
+        tmp_date = tmp_datetime.date()
+        # if date not in unique dates, append
+        if tmp_date not in unique_dates:
+            unique_dates.append(tmp_date)
+
+# Sort dates
+unique_dates = sorted(unique_dates)
+
+# Instantiate dict objects with unique dates and unique key values set to 0
+unique_topic_daily_activity = {
+    k: {k: 0 for k in unique_dates} for k in unique_topics}
+unique_topic_hourly_activity = {
+    k: {k: 0 for k in unique_hours} for k in unique_topics}
+
+
+# Iterate through each session id
+for i in zip(range(len(topics.values))):
+    # Iterate through each index of nested list
+    for j, k in zip(range(0, len(topics.values[i][0])), range(0, len(i))):
+        tmp = topics.values[i][0][j]
+        # Assign a datetime and time object
+        tmp_datetime = timestamps.values[i][k]
+        tmp_date = tmp_datetime.date()
+        tmp_time = tmp_datetime.time()
+        tmp_hour = tmp_time.hour
+
+        # Convert hour into a string
+        if tmp_hour > 9:
+            tmp_time = str(tmp_hour) + ':00'
+
+        else:
+            tmp_time = "0" + str(tmp_hour) + ':00'
+
+        # Add to dictionary
+        unique_topic_daily_activity[tmp][tmp_date] += 1
+        unique_topic_hourly_activity[tmp][tmp_time] += 1
+```
+
+#### Daily Activity
+```python
+# Daily Activity of Topics 
+activity_scatter(
+    dict_=unique_topic_daily_activity,  yrange_=[0, 2100],
+    xaxis_title='Dates', yaxis_title='Active Users', title_='<b> Daily Active Users per Topic')
+```
+![](./img/tda.png)
+
+#### Hourly Activity
+``` python
+# Hourly Activity of Topics 
+activity_scatter(
+    dict_=unique_topic_hourly_activity,  yrange_=[0, 1000],
+    xaxis_title='Hourly', yaxis_title='Active Users', title_='<b> Hourly Active Users per Topic')
+```
+![](./img/tha.png)
+
+
+## Devices
+
+### What is the frequency count for Devices?
+``` python
+# Distribution of Devices
+multiple_subset_bar(df_=df, feature_='device_type', yrange=[0, 5], xaxis_title = 'Devices')
+```
+![](./img/device_dist.png)
+
+### What is the distribution of read times for Devices?
+``` python
+# Read Time across Devices
+multiple_subset_feature_visualization(
+    df_=df,  feature_1='device_type',
+    feature_2='read_time', feature_1_title='Devices',
+    feature_2_title='Read Time(s)', histogram_xaxis_title='Read Time(s)'
+)
+```
+
+![](./img/device_rt.png)
+
+### What is the distribution of scroll percentages for Devices?
+``` python
+# Scroll Percentage across Devices
+multiple_subset_feature_visualization(
+    df_=df,  feature_1='device_type',
+    feature_2='scroll_percentage', feature_1_title='Devices',
+    feature_2_title='Scroll Percentages(%)', histogram_xaxis_title='Scroll Percentages(%)'
+)
+```
+
+![](./img/device_sp.png)
+
+### What is the topic distribution for Devices?
+``` python
+# Distribution of Topics Per Device
+# Unique Topics
+# Distribution of Topics Per Device
+# Unique Topics
+topic_list = unique_subset_topics(df)
+unique_topics = sorted(topic_list)
+# Plot
+topic_feature_bar_distribution(
+    df_=df, feature_='device_type', yrange=[0, 4.5],
+    topic_list_=unique_topics, subplot_titles_=[
+        '<b>Desktop<b>', '<b>Mobile<b>', '<b>Tablet<b>'],
+    xaxis_title='<b>Topics<b>', yaxis_title='<b>Count<b>',
+    title_='<b>Topic Distribution Per Device<b>',
+    height_=750, width_=1000
+)
+```
+
+![](./img/device_topics.png)
+
+### What is the daily and hourly activity for devices?
+```python
+# Daily and Hourly Activity across Devices
+daily_hourly_activity_feature_bar_distribution(
+    df_ = df, feature_ = 'device_type', yrange = [0, 4],
+    subplot_titles_ = ['<b>Daily<b>', '<b>Monthly<b>'],
+    title_ = '<b>Daily and Hourly Activity per Device<b>',
+    height_ = 750, width_ = 1000
+    )
+```
+![](./img/devices_dha.png)
+
+## Age
+
+### What are the distribution of Ages?
+```python
+# Distribution of Ages
+multiple_subset_bar(
+    df_=df, feature_='age', yrange=[0, 3.5],
+    xaxis_title ='Age'
+    )
+```
+![](./img/age_dist.png)
+
+
+### What is the distribution of read time for Ages?
+```python
+# Read Time across Ages
+multiple_subset_feature_visualization(
+    df_=df,  feature_1='age',
+    feature_2='read_time', feature_1_title='Age',
+    feature_2_title='Read Time(s)', histogram_xaxis_title='Read Time(s)'
+)
+
+```
+![](./img/age_rt.png)
+
+### What is the distribution of scroll percentage for Ages?
+```python
+# Scroll Percentages across Ages
+multiple_subset_feature_visualization(
+    df_=df,  feature_1='age',
+    feature_2='scroll_percentage', feature_1_title='Age',
+    feature_2_title='Scroll Percent(%)', histogram_xaxis_title='Scroll Percentage(%)'
+)
+
+```
+![](./img/age_sp.png)
+
+### What is the topic distribution for Age?
+```python
+# Distribution of Topics across Ages
+## Get all the unique topics
+topic_list = unique_subset_topics(df)
+unique_topics = sorted(topic_list)
+## Plot
+topic_feature_bar_distribution(
+    df_=df, feature_='age', yrange=[0, 2.5],
+    topic_list_=unique_topics,
+    subplot_titles_=[
+        '<b>20-29<b>', '<b>30-39<b>', '<b>40-49<b>',
+        '<b>50-59<b>', '<b>60-69<b>', '<b>70-79<b>',
+        '<b>80-89<b>', '<b>90-99<b>'
+    ],
+    xaxis_title='<b>Topics<b>', yaxis_title='<b>Count<b>',
+    title_='<b>Topic Distribution of Age Groups<b>',
+    height_=1000, width_=1000
+)
+
+```
+![](./img/age_topics.png)
+
+
+### What is the daily and hourly activity for Age?
+```python
+# Daily Activity Users / Hourly Activity Users across Age
+daily_hourly_activity_feature_bar_distribution(
+    df_=df, feature_='age', yrange=[0, 2.5],
+    subplot_titles_=['<b>Daily<b>', '<b>Monthly<b>'],
+    title_='<b>Daily and Hourly Activity of Age Groups<b>',
+    height_=750, width_=1000
+)
+
+```
+![](./img/age_dha.png)
+
+## Postcodes
+
+### What is the distribution of postcodes?
+```python
+# Distribution of Postcodes. 
+multiple_subset_bar(
+    df_=df, feature_='postcode',
+    yrange=[0, 3], xaxis_title ='Postcode')
+```
+![](./img/postcode_dist.png)
+
+
+### What is the distribution of postcodes?
+```python
+# Read Time across Postcodes
+multiple_subset_feature_visualization(
+    df_=df,  feature_1='postcode',
+    feature_2='read_time', feature_1_title='Postcodes',
+    feature_2_title='Read Time(s)', histogram_xaxis_title='Read Time(s)'
+)
+```
+![](./img/postcode_rt.png)
+
+### What is the distribution of read time for postcodes?
+```python
+# Read Time across Postcodes
+multiple_subset_feature_visualization(
+    df_=df,  feature_1='postcode',
+    feature_2='read_time', feature_1_title='Postcodes',
+    feature_2_title='Read Time(s)', histogram_xaxis_title='Read Time(s)'
+)
+```
+![](./img/postcode_rt.png)
+
+### What is the distribution of scroll percentage for postcodes?
+```python
+# Scroll Percentages across Postcodes
+multiple_subset_feature_visualization(
+    df_=df,  feature_1='postcode',
+    feature_2='scroll_percentage', feature_1_title='Postcode',
+    feature_2_title='Scroll Percent(%)', histogram_xaxis_title='Scroll Percentage(%)'
+)
+```
+![](./img/postcode_sp.png)
+
+### What is the topic distribution for postcodes?
+```python
+# Distribution of Topics across Postcodes
+## Get all the unique topics
+topic_list = unique_subset_topics(df)
+unique_topics = sorted(topic_list)
+## Plot
+topic_feature_bar_distribution(
+    df_=df, feature_='postcode', yrange=[0, 2.5],
+    topic_list_=unique_topics,
+    subplot_titles_=[
+        '<b>Big City<b>', '<b>Metropolitan<b>', '<b>Municiplaity<b>',
+        '<b>Provincial<b>', '<b>Rural District<b>'
+    ],
+    xaxis_title='<b>Topics<b>', yaxis_title='<b>Count<b>',
+    title_='<b>Topic Distribution per Postcodes<b>',
+    height_=850, width_=1000
+)
+```
+![](./img/postcode_topics.png)
+
+
+### What is the daily and hourly activity for postcodes?
+```python
+# Daily Activity Users / Hourly Activity Users across Postcodes
+daily_hourly_activity_feature_bar_distribution(
+    df_=df, feature_='postcode', yrange=[0, 4],
+    subplot_titles_=['<b>Daily<b>', '<b>Monthly<b>'],
+    title_='<b>Daily and Hourly Activity per Postcode<b>',
+    height_=750, width_=1000
+)
+```
+![](./img/postcode_dha.png)
+
+-----------------------------------------------------
+For more analysis, check out my notebook containing the code!
+
+Stay tuned for my next post which will go over the model selection for Recommendation Systems!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
