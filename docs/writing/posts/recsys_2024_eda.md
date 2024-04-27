@@ -22,27 +22,28 @@ categories:
 
     For more information on the [dataset](https://recsys.eb.dk/dataset/).
 
-The purpose of this blog post is to go over the exploratory data analysis of this dataset. The post will be organized into the following sections:
+!!! abstract "Purpose"
+    This article will cover the exploratory data analysis of the RecSys 2024 Challenge dataset. The content will be structured into the following sections:
 
-- Data Preprocessing
-- Functions
-    * Plot Functions
-    * Feature Functions
-- Feature Analysis
-    - Overall Feature Analysis
-    - Article
-    - User
-    - Session
-    - Topic
-    - Devices
-    - Age
+    - Data Preprocessing
+    - Functions
+        * Plot Functions
+        * Feature Functions
+    - Feature Analysis
+        - Overall Feature Analysis
+        - Article
+        - User
+        - Session
+        - Topic
+        - Devices
+        - Age
 
 
 !!! note "Key Metrics" 
-    We need to establish specific metrics and analyze how different features impact those metrics. Our platform generates revenue through both subscriptions and advertisements. User engagement is crucial because the more time users spend reading new articles, the greater our advertisement revenue.
+    We need to establish specific metrics and analyze how different features impact those metrics. Our platform generates revenue through both subscriptions and advertisements. User engagement is crucial because the more time users spend reading new articles, the greater our advertisement revenue. We will need this insight for our next section on model selection for a recommendation system.
 
 # Data Preprocessing
-Let's import our packages used for this section. 
+Let's start by importing the packages required for this section.
 
 ```python
 # Packages
@@ -54,13 +55,14 @@ import plotly
 import plotly.express as px
 import plotly.graph_objects as go
 ```
-Next, load in the three separate data sources of the dataset:
+Next, let's load in the three separate data sources of the dataset:
 
-[**Articles**](https://recsys.eb.dk/dataset/#articles): Detailed information of news articles.
+!!! note "Data Sources"
+    [**Articles**](https://recsys.eb.dk/dataset/#articles): Detailed information of news articles
 
-[**Behaviors**](https://recsys.eb.dk/dataset/#behaviors): Impression Logs. 
-
-[**History**](https://recsys.eb.dk/dataset/#history): Click histories of users. 
+    [**Behaviors**](https://recsys.eb.dk/dataset/#behaviors): Impression Logs. 
+    
+    [**History**](https://recsys.eb.dk/dataset/#history): Click histories of users. 
 
 ```python
 # Load in various dataframes
@@ -73,11 +75,16 @@ df_bev = pd.read_parquet("Data/Small/train/behaviors.parquet")
 # History
 df_his = pd.read_parquet("Data/Small/train/history.parquet")
 ```
-How can we join these data sources together? We see there are columns shared amongst each of these data sources that we can join on.
-We will have to adjust the `behaviors['articles_id_clicked']` feature before we can merge them together.
+!!! question "How can we merge these data sources?" 
 
-* **Articles** <> Article ID <> **Behavior**
-* **History** <> User ID <> **Behavior**
+!!! info
+    We've noticed that there are columns shared among each of these data sources that we can use for joining.
+
+    * **Articles** <> Article ID <> **Behavior**
+    * **History** <> User ID <> **Behavior**
+
+
+Before merging them together, we'll need to adjust the `behaviors['articles_id_clicked']` feature.
 
 
 ```python
@@ -96,7 +103,7 @@ df_bev = []
 df_his = []
 df_art = []
 ```
-Finally, we'll preprocess more of the columns by changing device_type column from an int to a str, gender from a float to a str, postcodes from a float to a str, article id from a str to int, and age is an age range, so we made it to a str.
+Finally, we'll preprocess additional columns by converting the `device_type` from integer to string, `gender` from float to string, `postcodes` from float to string, `article_id` from string to integer, and `age` from an integer to a string.
 
 ```python
 def device_(x):
@@ -180,16 +187,20 @@ df['postcode'] = df['postcode'].apply(lambda x: postcodes_(x))
 ```
 
 # Functions
-This section is split in two different types of Functions used for the analysis: Functions to produce the visualizations and functions used in each of the feature selection to get the features in ready for visualization.
+This section is divided into two types of functions used for EDA:
+
+1. Visualization 
+2. Feature preprocessing 
 
 ## Plot Functions
-Functions to produce the following:
+We'll implement functions to generate the following visualizations:
 
-- single and multiple categorical bar plots
-- single and multiple categorical histogram, box, and bar plots
-- Measure how feature relate to activity (scatter plot: frequency vs time)
+- Single and Multiple Categorical Bar Plots
+- Single and Multiple Categorical Histograms, Box Plots, and Bar plots
+- Scatter plots to measure activity across a time period
 
-The following below is an example of the code written for a function. 
+Below is an example of a plot function implemented. This function will generate a histogram, a box plot, and a bar plot visualization for two features: This function is useful when comparing a categorical feature (such as Age) with a numerical feature (such as Read Time).
+
 
 ```python
 def multiple_subset_feature_visualization(
@@ -308,14 +319,15 @@ def multiple_subset_feature_visualization(
 ```
 
 ## Feature Functions
-These are helper functions used to get these features ready to be put in the visualization functions!
-They are designed for specific features:
+These are helper functions designed to preprocess features, preparing them to be used in the previous visaulization functions. 
+
+They are split into separate sections for specific features:
 
 - Article
 - User
 - Topic 
 
-A snippet belows shows an example used.
+The following code snippet demonstrates a function that will populate a dictionary.
 
 ```python
 def populate_dict(list_, dict_):
@@ -336,36 +348,37 @@ def populate_dict(list_, dict_):
 ```
 
 # Feature Analysis
-We aim to gain insights into which features we can utilize for our recommendation system. This is will be a brief analysis, the notebook contains more feature analysis.
+We aim to gain insights into which features we can utilize for our recommendation system. This analysis will be brief. For more information, check out the [notebook](https://github.com/SulmanK/2024-Recsys-Challenge/blob/main/2024_Recsys_Challenge_EDA.ipynb) which contains more in-depth feature analysis.
 
-Questions:
+## Questions:
+These are questions we are looking to answer by the end of this analysis.
 
-1. Explore the following features.
+!!! question "What features provide details about an article?"
+    - Topic
+    - Read Time
+    - Scroll Percentage
+
+!!! question "What is the behavior of the following features?"
     - Article
     - User
     - Session
-    - Topic
     - Devices
     - Ages
     - Postcodes
 
-2. What are features that describe an article?
-    - Topic
-    - Read Time
-    - Scroll Percentage
-    - How do the features above relate to others?
 
-4. Describe the activity of our users? Subset it across our categorical features such as ages, devices, gender, postcodes, etc.
+!!! question "Explain the behavior of our users (activity across a time perido)? Segment it based on our categorical features such as ages, devices, gender, and postcodes."
+
     - Daily
     - Hourly
     - Weekly
     - Day of the week
 
-5. Describe the topic distribution across our categorical features such as ages, devices, and postcodes. 
+!!! question "Describe the topic distribution across our categorical features such as ages, devices, and postcodes?"
 
 ## Overall Feature Analysis
 
-### What is the total number of impressions in this data?
+!!! question "How many impressions are there in total?"
 ```python
 # Number of Impressions
 single_subset_bar(df_=df, feature_='impression_id',
@@ -374,7 +387,7 @@ single_subset_bar(df_=df, feature_='impression_id',
 
 ![](./img/numberofimpressionstest.png)
 
-### How does the distribution of read times look like?
+!!! question "What does the distribution of read times look like?"
 ```python
 # Distribution of Read Times
 single_subset_feature_visualization(
@@ -384,7 +397,7 @@ single_subset_feature_visualization(
 ![](./img//rtforallimpressions.png)
 
 
-### How does the distribution of scroll percentages look like?
+!!! question "How does the distribution of scroll percentages look like?"
 ```python
 # Distribution of Scroll Percentages
 single_subset_feature_visualization(
@@ -397,7 +410,7 @@ single_subset_feature_visualization(
 
 ## Article
 
-### How many articles are present in this data?
+!!! question "How many articles are present in this data?"
 ```python
 # Total Number of Articles
 single_subset_bar(df_ = df, feature_ = 'article_id', xaxis_title = 'Number of Articles', yrange = [0, 2000])
@@ -406,7 +419,7 @@ single_subset_bar(df_ = df, feature_ = 'article_id', xaxis_title = 'Number of Ar
 ![](./img/numberofarticles.png)
 
 
-### How many articles are clicked in a singled session?
+!!! question "How many articles are clicked in a singled session?"
 ```python
 # How many unique articles are clicked in a session?
 
@@ -433,7 +446,7 @@ plot_bar(
 ```
 ![](./img/numberofarticlesclickedinasession.png)
 
-### What is the average read time and scroll percentage for each article?
+!!! question "What is the average read time and scroll percentage for each article?"
 
 ```python
 # Get the average readtime and scroll percentages for all articles!
@@ -481,7 +494,7 @@ for k, v in zip(unique_article_scroll.keys(), unique_article_scroll.values()):
     unique_article_scroll_avg[k] = np.mean(v)
 ```
 
-#### Average read time of each article
+### Average read time of each article
 ```python
 # Distribution of Read Times for each Article
 ## Indices / Values
@@ -495,7 +508,7 @@ plot_box(
 ```
 ![](./img/rtforarticles.png)
 
-#### Average scroll percenage of each article
+### Average scroll percenage of each article
 ```python
 # Distribution of Scroll Percentages for each Article
 ## Indices / Values
@@ -511,7 +524,7 @@ plot_box(
 
 ## User
 
-### What is the total number of users?
+!!! question "What is the total number of users?"
 
 ```python
 # Total Number of Users
@@ -519,7 +532,7 @@ single_subset_bar(df_ = df, feature_ = 'user_id', xaxis_title = 'Number of Users
 ```
 ![](./img/totalnumberofusers.png)
 
-### Describe the behavior of daily user growth?
+!!! question "Describe the behavior of daily user growth?"
 ```python
 # Record the daily user growth
 unique_user_ids = df['user_id'].unique()
@@ -560,7 +573,7 @@ plot_bar(indices_=indices, values_=values, yrange_=[
 
 ![](./img/dug.png)
 
-### What is the average read time across each unique user?
+!!! question "What is the average read time across each unique user?"
 ```python
 # Read Time per User
 
@@ -575,7 +588,7 @@ single_subset_feature_visualization(
 ```
 ![](./img/artuser.png)
 
-### What is the average scroll percentage across each unique user?
+!!! question "What is the average scroll percentage across each unique user?"
 
 ```python
 # Scroll Percentage per User
@@ -592,7 +605,7 @@ single_subset_feature_visualization(
 
 ![](./img/aspuser.png)
 
-### How does the user activity look like?
+!!! question "How does the user activity look like?"
 ```python
 # Record the daily, hourly, weekly, dayofweek activity across all users
 
@@ -664,7 +677,7 @@ unique_users_dayofweek_freq = int_dow_dict(unique_users_dayofweek_freq)
 unique_users_weekly_freq = dict(sorted(unique_users_weekly_freq.items()))
 ```
 
-#### Daily User Activity
+### Daily User Activity
 ```python
 # Daily User Activity
 
