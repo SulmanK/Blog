@@ -80,7 +80,11 @@ markdown_extensions:
       smart_enable: all
   - pymdownx.caret
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+     custom_fences:
+       - name: mermaid
+         class: mermaid
+         format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -100,6 +104,14 @@ markdown_extensions:
   - pymdownx.tilde
   - pymdownx.arithmatex:
       generic: true
+
+nav:
+  - Home: 
+    - Introductions: 'index.md'
+    - Writing: "writing/index.md"
+  - Writing:
+    - "writing/index.md"
+  - Contact: 'contact.md'
   
 plugins:
   - blog:
