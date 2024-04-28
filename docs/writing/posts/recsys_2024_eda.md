@@ -374,7 +374,7 @@ These are questions we seek to address by the end of this analysis.
     - Postcodes
 
 
-!!! question "Explain the behavior of our users (activity across a time perido)? Segment it based on our categorical features such as ages, devices, gender, and postcodes."
+!!! question "Explain the activity of our users (activity across a time period)? Segment it based on our categorical features such as ages, devices, gender, and postcodes."
 
     - Daily
     - Hourly
@@ -1120,7 +1120,7 @@ These are questions we seek to address by the end of this analysis.
 
     ![](./img/device_sp.png)
 
-!!! question "What is the topic distribution for Devices?"
+!!! question "What is the topic distribution for devices?"
 
 !!! success "Solution"
     The topic distribution is relatively consistent across all devices: Kendt > Sport > Begivenhed, Underholdning > Kriminalitet 
@@ -1162,7 +1162,7 @@ These are questions we seek to address by the end of this analysis.
 
 ### Age
 
-!!! question "What are the distribution of Ages?"
+!!! question "What are the distribution of ages?"
 
 !!! success "Solution"
     There's significant variation in the frequency of ages, with a majority of users falling within the 50-79 age range.
@@ -1176,7 +1176,7 @@ These are questions we seek to address by the end of this analysis.
     ![](./img/age_dist.png)
 
 
-!!! question "What is the distribution of read time and scroll percentages for Ages?"
+!!! question "What is the distribution of read time and scroll percentages for ages?"
 
 
 !!! success "Solution"
@@ -1204,7 +1204,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/age_sp.png)
 
-!!! question "What is the topic distribution for Age?"
+!!! question "What is the topic distribution for age?"
 !!! success "Solution"
     Five topics consistently appear across all age ranges, but their frequency varies within each age group.
     ```python
@@ -1230,7 +1230,7 @@ These are questions we seek to address by the end of this analysis.
     ![](./img/age_topics.png)
 
 
-!!! question "What is the daily and hourly activity for Age?"
+!!! question "What is the daily and hourly activity for age?"
 !!! success "Solution"
     The daily and hourly activity trajectories are similar across each age group, except for the 90-99 age group, which appears scattered due to missing data on certain dates.
     ```python
