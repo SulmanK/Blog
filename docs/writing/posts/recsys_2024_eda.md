@@ -11,7 +11,7 @@ categories:
   - Exploratory Data Analysis
   - Data Science
 authors:
-  - SulmanK
+  - sulmank
 ---
 # RecSys Challenge 2024: Exploratory Data Analysis
 !!! info "About"
