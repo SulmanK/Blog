@@ -630,7 +630,7 @@ These are questions we seek to address by the end of this analysis.
 
     ![](./img/aspuser.png)
 
-!!! question "How does the user activity look like?"
+!!! question "Describe the behavior of user activity?"
 !!! success "Solution"
     ```python
     # Record the daily, hourly, weekly, dayofweek activity across all users
@@ -704,7 +704,7 @@ These are questions we seek to address by the end of this analysis.
     ```
 
     ### Daily User Activity
-    We observe a fluctation between 675 and 850 users with a huge drop off at the end. 
+    We notice a fluctuation between 675 and 850 users, with a substantial drop-off toward the end.
     ```python
     # Daily User Activity
 
@@ -722,6 +722,8 @@ These are questions we seek to address by the end of this analysis.
     ![](./img/dau.png)
 
     ### Hourly User Activity
+    We notice a significant surge in users at 04:00 (4am), which remains relatively consistent until 21:00 (9:00 pm). Following that, there is a notable decline until 04:00.
+
     ```python
     # Hourly User Activity
 
@@ -739,6 +741,7 @@ These are questions we seek to address by the end of this analysis.
     ![](./img/hau.png)
 
     ### Weekly User Activity
+    There is a consistent upward trend in the number of users from week 1 to week 4. 
 
     ```python
     # Weekly User Activity
@@ -757,6 +760,7 @@ These are questions we seek to address by the end of this analysis.
     ![](./img/wau.png)
 
     ### Day of the Week User Activity
+    User activity remains consistent throughout all days of the week.
 
     ```python
     # Day Of The Week Activity
@@ -777,169 +781,181 @@ These are questions we seek to address by the end of this analysis.
 ## Session
 
 !!! question  "What are the total number of sessions?"
-```python
-# Toal Number of Sessions
-single_subset_bar(df_=df, feature_='session_id',
-                  xaxis_title='Number of Sessions', yrange=[0, 40000])
-```
 
-![](./img/numberofsessions.png)
+!!! success "Solution"
+    There are 36795 unique sessions.
+    ```python
+    # Toal Number of Sessions
+    single_subset_bar(df_=df, feature_='session_id',
+                    xaxis_title='Number of Sessions', yrange=[0, 40000])
+    ```
+    ![](./img/numberofsessions.png)
 
 !!! question "What are the number of unique sessions per day?"
 
-```python
-# Number of unique sessions per day
+!!! success "Solution"
 
-# Make a copy of the dataframe and extract the time as a str
-copy_df = df.copy()
-copy_df['impression_time'] = copy_df['impression_time'].apply(
-    lambda x: x.date())
+    The session count remains relatively stable within the range of 4000 to 6000 sessions until the final date, where a notable decline is observed.
 
-# Group by the session ids with the impression time
-unique_sessions_per_day = copy_df.groupby(
-    by='session_id')['impression_time'].min()
-tmp_dau_df = pd.DataFrame(data=unique_sessions_per_day.values,
-                          index=unique_sessions_per_day.keys(), columns=['Session Dates'])
+    ```python
+    # Number of unique sessions per day
 
-# Plot
-multiple_subset_bar(
-    df_=tmp_dau_df, feature_='Session Dates',
-    yrange=[0, 4.5], xaxis_title = 'Session Dates')
-```
+    # Make a copy of the dataframe and extract the time as a str
+    copy_df = df.copy()
+    copy_df['impression_time'] = copy_df['impression_time'].apply(
+        lambda x: x.date())
 
-![](./img/das.png)
+    # Group by the session ids with the impression time
+    unique_sessions_per_day = copy_df.groupby(
+        by='session_id')['impression_time'].min()
+    tmp_dau_df = pd.DataFrame(data=unique_sessions_per_day.values,
+                            index=unique_sessions_per_day.keys(), columns=['Session Dates'])
+
+    # Plot
+    multiple_subset_bar(
+        df_=tmp_dau_df, feature_='Session Dates',
+        yrange=[0, 4.5], xaxis_title = 'Session Dates')
+    ```
+
+    ![](./img/das.png)
 
 !!! question "What is average read time and scroll percentage for each unique session?"
 
-### Read Time
-```python
-# Read Time per Session
-## Group by session ids and read_time 
-tmp_session_df = pd.DataFrame(data=df.groupby(by='session_id')[
-                              'read_time'].mean(), columns=['read_time'])
-## Plot
-single_subset_feature_visualization(
-    df_=tmp_session_df,  feature_='read_time',
-    data_title='Unique Sessions', feature_title = 'Read Time(s)',
-    histogram_xaxis_title ='Read Time(s)')
-```
-![](./img/artus.png)
+!!! success "Solution"
+    ### Read Time
+    ```python
+    # Read Time per Session
+    ## Group by session ids and read_time 
+    tmp_session_df = pd.DataFrame(data=df.groupby(by='session_id')[
+                                'read_time'].mean(), columns=['read_time'])
+    ## Plot
+    single_subset_feature_visualization(
+        df_=tmp_session_df,  feature_='read_time',
+        data_title='Unique Sessions', feature_title = 'Read Time(s)',
+        histogram_xaxis_title ='Read Time(s)')
+    ```
+    ![](./img/artus.png)
 
-### Scroll Percentage
-```python
-# Scroll Percentage per Session
-## Group by session ids and scroll percentage
-tmp_session_df = pd.DataFrame(data=df.groupby(by='session_id')[
-                              'scroll_percentage'].mean(), columns=['scroll_percentage'])
-## Plot
-single_subset_feature_visualization(
-    df_=tmp_session_df,  feature_='scroll_percentage',
-    data_title='Unique Sessions', feature_title = 'Scroll Percentage(%)',
-    histogram_xaxis_title ='Scroll Percentage(%)')
-```
+    ### Scroll Percentage
+    ```python
+    # Scroll Percentage per Session
+    ## Group by session ids and scroll percentage
+    tmp_session_df = pd.DataFrame(data=df.groupby(by='session_id')[
+                                'scroll_percentage'].mean(), columns=['scroll_percentage'])
+    ## Plot
+    single_subset_feature_visualization(
+        df_=tmp_session_df,  feature_='scroll_percentage',
+        data_title='Unique Sessions', feature_title = 'Scroll Percentage(%)',
+        histogram_xaxis_title ='Scroll Percentage(%)')
+    ```
 
-![](./img/aspus.png)
+    ![](./img/aspus.png)
 
 ## Topic
 
-!!! question "What is the total number of topics?"
+!!! question "How many topics are there in total?"
 
-```python
-# Number of Topics!
-# Unique Topics
-topic_list = unique_subset_topics(df)
-# Plot
-tmp_topic_df = pd.DataFrame(data=topic_list, columns=['topics'])
+!!! success "Solution"
+    There are 78 unique topics.
 
-single_subset_bar(df_=tmp_topic_df, feature_='topics',
-                  xaxis_title='Number of Topics', yrange=[0, 100])
-```
-![](./img/numberoftopics.png)
+    ```python
+    # Number of Topics!
+    # Unique Topics
+    topic_list = unique_subset_topics(df)
+    # Plot
+    tmp_topic_df = pd.DataFrame(data=topic_list, columns=['topics'])
+
+    single_subset_bar(df_=tmp_topic_df, feature_='topics',
+                    xaxis_title='Number of Topics', yrange=[0, 100])
+    ```
+    ![](./img/numberoftopics.png)
 
 !!! question "What are the top 10 most popular topics?"
 
-```python
-# Record the frequency of topics across unique users, readtimes across topics, and scroll percentages across those topics
+!!! success "Solution"
+    Kendt > Sport > Begivenhed > Underholdning > Sportsbegivenhed > Kriminalitet > Livsstill > Politik > Fodbold > Erhverv
+    ```python
+    # Record the frequency of topics across unique users, readtimes across topics, and scroll percentages across those topics
 
-# Get all unique ids in a list
-unique_user_ids = df['user_id'].values[0:1000]
+    # Get all unique ids in a list
+    unique_user_ids = df['user_id'].values[0:1000]
 
-# Create dictionaries
-unique_users_topics_freq = {}
-unique_topic_scroll_freq = {}
-unique_topic_read_freq = {}
+    # Create dictionaries
+    unique_users_topics_freq = {}
+    unique_topic_scroll_freq = {}
+    unique_topic_read_freq = {}
 
-# Iterate through each user id and record the topics viewed!
-for id in unique_user_ids:
-    # Get the subset of that user id
-    tmp_df = df[df['user_id'] == id]
-    # Now lets go through each topic
-    indices = np.array(tmp_df.index)
-    for i in indices:
-        # Record the topic, scroll percentage and read_time for each index
-        tmp_topics = tmp_df['topics'][i]
-        tmp_scroll = tmp_df['scroll_percentage'][i]
-        tmp_read = tmp_df['read_time'][i]
-        topics = [x for x in tmp_topics]
-        scroll = [tmp_scroll]
-        read = [tmp_read]
+    # Iterate through each user id and record the topics viewed!
+    for id in unique_user_ids:
+        # Get the subset of that user id
+        tmp_df = df[df['user_id'] == id]
+        # Now lets go through each topic
+        indices = np.array(tmp_df.index)
+        for i in indices:
+            # Record the topic, scroll percentage and read_time for each index
+            tmp_topics = tmp_df['topics'][i]
+            tmp_scroll = tmp_df['scroll_percentage'][i]
+            tmp_read = tmp_df['read_time'][i]
+            topics = [x for x in tmp_topics]
+            scroll = [tmp_scroll]
+            read = [tmp_read]
 
-    # Find the average scroll percentages across each topic  (Can be related to whether a topic doesnt require too much reading has visualizations)
-    # Look at article_id for whichever topics the article is included in add that scroll percentage
-        tmp_topic_scroll = {k: v for k, v in zip(topics, scroll)}
-        unique_topic_scroll_freq = topics_article_id_scroll_read(
-            tmp_topic_scroll, unique_topic_scroll_freq)
+        # Find the average scroll percentages across each topic  (Can be related to whether a topic doesnt require too much reading has visualizations)
+        # Look at article_id for whichever topics the article is included in add that scroll percentage
+            tmp_topic_scroll = {k: v for k, v in zip(topics, scroll)}
+            unique_topic_scroll_freq = topics_article_id_scroll_read(
+                tmp_topic_scroll, unique_topic_scroll_freq)
 
-    # Find the average read time across each topic
-    # Look at article_id for whichever topics the article is included in add that readtime
-        tmp_topic_read = {k: v for k, v in zip(topics, read)}
-        unique_topic_read_freq = topics_article_id_scroll_read(
-            tmp_topic_read, unique_topic_read_freq)
+        # Find the average read time across each topic
+        # Look at article_id for whichever topics the article is included in add that readtime
+            tmp_topic_read = {k: v for k, v in zip(topics, read)}
+            unique_topic_read_freq = topics_article_id_scroll_read(
+                tmp_topic_read, unique_topic_read_freq)
 
-    # Unique User Topics
-    # Get rid of duplicate values
-    unique_topics = list(set(topics))
+        # Unique User Topics
+        # Get rid of duplicate values
+        unique_topics = list(set(topics))
 
-    # Populate our dict
-    populate_dict(unique_topics, unique_users_topics_freq)
+        # Populate our dict
+        populate_dict(unique_topics, unique_users_topics_freq)
 
 
-# Sort the dictionaries
-sorted_topic_freq = dict(
-    sorted(unique_users_topics_freq.items(), key=lambda x: x[1], reverse=True))
+    # Sort the dictionaries
+    sorted_topic_freq = dict(
+        sorted(unique_users_topics_freq.items(), key=lambda x: x[1], reverse=True))
 
-# Find the average read times across each topic
-unique_topic_read_avg_freq = {k: round(np.nanmean(v), 2) for k, v in zip(
-    unique_topic_read_freq.keys(), unique_topic_read_freq.values())}
-sorted_unique_topic_read_avg_freq = dict(
-    sorted(unique_topic_read_avg_freq.items(), key=lambda x: x[1], reverse=True))
+    # Find the average read times across each topic
+    unique_topic_read_avg_freq = {k: round(np.nanmean(v), 2) for k, v in zip(
+        unique_topic_read_freq.keys(), unique_topic_read_freq.values())}
+    sorted_unique_topic_read_avg_freq = dict(
+        sorted(unique_topic_read_avg_freq.items(), key=lambda x: x[1], reverse=True))
 
-# Sort the topics for distribution
-sorted_unique_topic_read_freq = dict(sorted(unique_topic_read_freq.items()))
+    # Sort the topics for distribution
+    sorted_unique_topic_read_freq = dict(sorted(unique_topic_read_freq.items()))
 
-# Find the average scroll percentages across each topic
-unique_topic_scroll_avg_freq = {k: round(np.nanmean(v), 2) for k, v in zip(
-    unique_topic_scroll_freq.keys(), unique_topic_scroll_freq.values())}
-sorted_unique_topic_scroll_avg_freq = dict(
-    sorted(unique_topic_scroll_avg_freq.items(), key=lambda x: x[1], reverse=True))
+    # Find the average scroll percentages across each topic
+    unique_topic_scroll_avg_freq = {k: round(np.nanmean(v), 2) for k, v in zip(
+        unique_topic_scroll_freq.keys(), unique_topic_scroll_freq.values())}
+    sorted_unique_topic_scroll_avg_freq = dict(
+        sorted(unique_topic_scroll_avg_freq.items(), key=lambda x: x[1], reverse=True))
 
-# Sort the topics scroll pct for distribution
-sorted_unique_topic_scroll_freq = dict(
-    sorted(unique_topic_scroll_freq.items()))
+    # Sort the topics scroll pct for distribution
+    sorted_unique_topic_scroll_freq = dict(
+        sorted(unique_topic_scroll_freq.items()))
 
-# Distribution of Topics across users!
-## Indices / Values for Plot
-indices = [x for x in sorted_topic_freq.keys()][0:10]
-values = [x for x in sorted_topic_freq.values()][0:10]
+    # Distribution of Topics across users!
+    ## Indices / Values for Plot
+    indices = [x for x in sorted_topic_freq.keys()][0:10]
+    values = [x for x in sorted_topic_freq.values()][0:10]
 
-## Plot
-plot_bar(
-    indices_=indices, values_=values,
-    yrange_=[0, 3], xaxis_title='Topics',
-    yaxis_title='Count', title_='<b> Top 10 Highest Topic Activity<b>')
-```
+    ## Plot
+    plot_bar(
+        indices_=indices, values_=values,
+        yrange_=[0, 3], xaxis_title='Topics',
+        yaxis_title='Count', title_='<b> Top 10 Highest Topic Activity<b>')
+    ```
 
-![](./img/top10topics.png)
+    ![](./img/top10topics.png)
 
 !!! question "What is the distribution of read time and scroll percentage across each topic?"
 ### Read Time
