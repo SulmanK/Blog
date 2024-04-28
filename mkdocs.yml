@@ -114,7 +114,10 @@ nav:
   - Contact: 'contact.md'
   
 plugins:
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - blog:
+      enabled: !ENV CI
       post_date_format: yyyy/MM/dd
       post_url_format: "{date}/{slug}"
       blog_dir: writing 
