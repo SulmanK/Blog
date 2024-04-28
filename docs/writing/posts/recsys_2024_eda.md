@@ -10,6 +10,8 @@ categories:
   - Recommendation Systems
   - Exploratory Data Analysis
   - Data Science
+authors:
+  - SulmanK
 ---
 # RecSys Challenge 2024: Exploratory Data Analysis
 !!! info "About"
