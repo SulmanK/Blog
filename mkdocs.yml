@@ -115,6 +115,7 @@ nav:
   
 plugins:
   - blog:
+      post_date_format: yyyy/MM/dd
       blog_dir: writing 
       blog_toc: true
       post_dir: writing/posts
@@ -127,4 +128,11 @@ plugins:
             members_order: alphabetical
             allow_inspection: true
             show_bases: true
+
+extra: 
+  social:
+  - icon: fontawesome/brands/linkedin
+    link: https://www.linkedin.com/in/sulman-khan
+  - icon: fontawesome/brands/github
+    link: https://github.com/sulmank
   

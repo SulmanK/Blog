@@ -1,1 +1,1 @@
-Feel free to reach out me via [email](sulman@vt.edu).
+Feel free to reach out me via [email](mailto:sulman@vt.edu) or [linkedin](https://www.linkedin.com/in/sulman-khan/)!
