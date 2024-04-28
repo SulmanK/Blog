@@ -3,6 +3,7 @@ draft: false
 
 
 date: 2024-04-25
+slug: recsys-challenge-2024-eda
 
 categories:
   - RecSys Challenge 2024
@@ -10,7 +11,7 @@ categories:
   - Exploratory Data Analysis
   - Data Science
 ---
-
+# RecSys Challenge 2024: Exploratory Data Analysis
 !!! info "About"
     This year's challenge focuses on online news recommendation, addressing both the technical and normative challenges inherent in designing effective and responsible recommender systems for news publishing. The challenge will delve into the unique aspects of news recommendation, including modeling user preferences based on implicit behavior, accounting for the influence of the news agenda on user interests, and managing the rapid decay of news items. Furthermore, our challenge embraces the normative complexities, involving investigating the effects of recommender systems on the news flow and whether they resonate with editorial values. [[1]](https://recsys.eb.dk/)
 
@@ -43,7 +44,7 @@ categories:
 !!! note "Key Metrics" 
     We need to establish specific metrics and analyze how different features impact those metrics. Our platform generates revenue through both subscriptions and advertisements. User engagement is crucial because the more time users spend reading new articles, the greater our advertisement revenue. We will need this insight for our next section on model selection for a recommendation system.
 
-# Data Preprocessing
+## Data Preprocessing
 Let's start by importing the packages required for this section.
 
 ```python
@@ -187,13 +188,13 @@ df['age'] = df['age'].apply(
 df['postcode'] = df['postcode'].apply(lambda x: postcodes_(x))
 ```
 
-# Functions
+## Functions
 This section is divided into two types of functions used for EDA:
 
 1. Visualization 
 2. Feature preprocessing 
 
-## Plot Functions
+### Plot Functions
 We'll implement functions to generate the following visualizations:
 
 - Single and Multiple Categorical Bar Plots
@@ -319,7 +320,7 @@ def multiple_subset_feature_visualization(
     return fig
 ```
 
-## Feature Functions
+### Feature Functions
 These are helper functions designed to preprocess features, preparing them to be used in the previous visaulization functions. 
 
 They are split into separate sections for specific features:
@@ -348,10 +349,10 @@ def populate_dict(list_, dict_):
             dict_[idx] += 1
 ```
 
-# Feature Analysis
+## Feature Analysis
 We aim to gain insights into which features we can utilize for our recommendation system. This analysis will be brief. For more information, check out the [notebook](https://github.com/SulmanK/2024-Recsys-Challenge/blob/main/2024_Recsys_Challenge_EDA.ipynb) which contains more in-depth feature analysis.
 
-## Main Questions:
+### Main Questions:
 These are questions we seek to address by the end of this analysis.
 
 !!! question "What features provide details about an article?"
@@ -377,7 +378,7 @@ These are questions we seek to address by the end of this analysis.
 
 !!! question "Describe the topic distribution across our categorical features such as ages, devices, and postcodes?"
 
-## Overall Feature Analysis
+### Overall Feature Analysis
 
 !!! question "How many impressions are there in total?"
 
@@ -416,7 +417,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/spforallimpressions.png)
 
-## Article
+### Article
 
 !!! question "What is the total number of articles?"
 
@@ -510,7 +511,7 @@ These are questions we seek to address by the end of this analysis.
         unique_article_scroll_avg[k] = np.mean(v)
     ```
 
-    ### Average Read Time 
+    #### Average Read Time 
 
     The average reading time spans from 0 to 43.29 seconds, with outliers extending beyond this range.
     ```python
@@ -526,7 +527,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/rtforarticles.png)
 
-    ### Average Scroll Percentage
+    #### Average Scroll Percentage
     The average scroll percentage ranges from 0 - 100%.
     ```python
     # Distribution of Scroll Percentages for each Article
@@ -541,7 +542,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/spforarticles.png)
 
-## User
+### User
 
 !!! question "What is the total number of users?"
 
@@ -598,7 +599,7 @@ These are questions we seek to address by the end of this analysis.
 
 !!! question "What is the average read time and scroll percentage across each unique user?"
 !!! success "Solution"
-    ### Read Time
+    #### Read Time
 
     ```python
     # Read Time per User
@@ -614,7 +615,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/artuser.png)
 
-    ### Scroll Percentage
+    #### Scroll Percentage
 
     ```python
     # Scroll Percentage per User
@@ -704,7 +705,7 @@ These are questions we seek to address by the end of this analysis.
     unique_users_weekly_freq = dict(sorted(unique_users_weekly_freq.items()))
     ```
 
-    ### Daily User Activity
+    #### Daily User Activity
     We notice a fluctuation between 675 and 850 users, with a substantial drop-off toward the end.
     ```python
     # Daily User Activity
@@ -722,7 +723,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/dau.png)
 
-    ### Hourly User Activity
+    #### Hourly User Activity
     We notice a significant surge in users at 04:00 (4am), which remains relatively consistent until 21:00 (9:00 pm). Following that, there is a notable decline until 04:00.
 
     ```python
@@ -741,7 +742,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/hau.png)
 
-    ### Weekly User Activity
+    #### Weekly User Activity
     There is a consistent upward trend in the number of users from week 1 to week 4. 
 
     ```python
@@ -760,7 +761,7 @@ These are questions we seek to address by the end of this analysis.
 
     ![](./img/wau.png)
 
-    ### Day of the Week User Activity
+    #### Day of the Week User Activity
     User activity remains consistent throughout all days of the week.
 
     ```python
@@ -779,7 +780,7 @@ These are questions we seek to address by the end of this analysis.
 
     ![](./img/dotwua.png)
 
-## Session
+### Session
 
 !!! question  "What are the total number of sessions?"
 
@@ -823,7 +824,7 @@ These are questions we seek to address by the end of this analysis.
 !!! question "What is average read time and scroll percentage for each unique session?"
 
 !!! success "Solution"
-    ### Read Time
+    #### Read Time
     ```python
     # Read Time per Session
     ## Group by session ids and read_time 
@@ -837,7 +838,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/artus.png)
 
-    ### Scroll Percentage
+    #### Scroll Percentage
     ```python
     # Scroll Percentage per Session
     ## Group by session ids and scroll percentage
@@ -852,7 +853,7 @@ These are questions we seek to address by the end of this analysis.
 
     ![](./img/aspus.png)
 
-## Topic
+### Topic
 
 !!! question "How many topics are there in total?"
 
@@ -962,7 +963,7 @@ These are questions we seek to address by the end of this analysis.
 
 !!! success "Solution"
 
-    ### Read Time
+    #### Read Time
     ``` python
     # Box Plot of Read Time across Topics
     ## Indices / Values for Plot
@@ -976,7 +977,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/rtt_box.png)
 
-    ### Scroll Percentage
+    #### Scroll Percentage
     ```python
     # Box Plot of Scroll Percentage across Topics
     ## Indices / Values for Plot
@@ -1056,7 +1057,7 @@ These are questions we seek to address by the end of this analysis.
             unique_topic_hourly_activity[tmp][tmp_time] += 1
     ```
 
-    ### Daily Activity
+    #### Daily Activity
     Daily activity vary significantly across topics, with some topics experiencing higher levels of activity due to their popularity.
     ```python
     # Daily Activity of Topics 
@@ -1066,7 +1067,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/tda.png)
 
-    ### Hourly Activity
+    #### Hourly Activity
     ``` python
     # Hourly Activity of Topics 
     activity_scatter(
@@ -1076,7 +1077,7 @@ These are questions we seek to address by the end of this analysis.
     ![](./img/tha.png)
 
 
-## Devices
+### Devices
 
 !!! question  "What is the distribution of devices?"
 !!! success "Solution"
@@ -1087,8 +1088,10 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/device_dist.png)
 
-!!! question "How are read times distributed across different devices?"
+!!! question "What is the distribution of read time and scroll percentages for devices?"
+
 !!! success "Solution"
+    #### Read Time
     ``` python
     # Read Time across Devices
     multiple_subset_feature_visualization(
@@ -1100,8 +1103,7 @@ These are questions we seek to address by the end of this analysis.
 
     ![](./img/device_rt.png)
 
-!!! question "How are scroll percentages distributed among different devices?"
-!!! success "Solution"
+    #### Scroll Percentage
     ``` python
     # Scroll Percentage across Devices
     multiple_subset_feature_visualization(
@@ -1153,7 +1155,7 @@ These are questions we seek to address by the end of this analysis.
     ![](./img/devices_dha.png)
 
 
-## Age
+### Age
 
 !!! question "What are the distribution of Ages?"
 
@@ -1173,7 +1175,7 @@ These are questions we seek to address by the end of this analysis.
 
 
 !!! success "Solution"
-    ### Read Time
+    #### Read Time
     ```python
     # Read Time across Ages
     multiple_subset_feature_visualization(
@@ -1185,7 +1187,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/age_rt.png)
 
-    ### Scroll Percentage
+    #### Scroll Percentage
     ```python
     # Scroll Percentages across Ages
     multiple_subset_feature_visualization(
@@ -1238,7 +1240,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/age_dha.png)
 
-## Postcodes
+### Postcodes
 
 !!! question "What is the distribution of postcodes?"
 !!! success "Solution"
@@ -1255,7 +1257,7 @@ These are questions we seek to address by the end of this analysis.
 !!! question "What is the distribution read time and scroll percentage of postcodes?"
 
 !!! success "Solution"
-    ### Read Time
+    #### Read Time
     ```python
     # Read Time across Postcodes
     multiple_subset_feature_visualization(
@@ -1266,7 +1268,7 @@ These are questions we seek to address by the end of this analysis.
     ```
     ![](./img/postcode_rt.png)
 
-    ### Scroll percentage
+    #### Scroll percentage
     ```python
     # Scroll Percentages across Postcodes
     multiple_subset_feature_visualization(

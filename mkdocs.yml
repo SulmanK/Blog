@@ -116,6 +116,7 @@ nav:
 plugins:
   - blog:
       post_date_format: yyyy/MM/dd
+      post_url_format: "{date}/{slug}"
       blog_dir: writing 
       blog_toc: true
       post_dir: writing/posts
