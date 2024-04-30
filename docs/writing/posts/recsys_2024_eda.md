@@ -96,11 +96,10 @@ Before merging them together, we'll need to adjust the `behaviors['articles_id_c
 
 ```python
 # Convert datatype of column first
-df_bev['article_ids_clicked'] = df_bev['article_ids_clicked'].apply(
-    lambda x: x[0])
+df_bev['article_id'] = df_bev['article_id'].apply(lambda x: x if type(s) == str else x.astype(np.int32) )
 
 # Join bevhaiors to article
-df = df_bev.join(df_art.set_index("article_id"), on="article_ids_clicked")
+df = df_bev.join(df_art.set_index("article_id"), on="article_id")
 
 # Join bevhaiors to history
 df = df.join(df_his.set_index("user_id"), on="user_id")
