@@ -169,6 +169,9 @@ Gathers information about recommendable items, including their title, descriptio
 
 These components are combined by computing their dot product. A high dot product value indicates a good match between the user and the item.
 
+#### Deep Learning Techniques
+In recent years, deep learning techniques have enabled advancements in recommendation systems, particularly with architectures like the dual encoder
+
 
 ## References
 [1] [Recent Developments in Recommender Systems: A Survey](https://arxiv.org/abs/2306.12680)
