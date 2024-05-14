@@ -169,8 +169,95 @@ Gathers information about recommendable items, including their title, descriptio
 
 These components are combined by computing their dot product. A high dot product value indicates a good match between the user and the item.
 
-#### Deep Learning Techniques
-In recent years, deep learning techniques have enabled advancements in recommendation systems, particularly with architectures like the dual encoder
+#### Deep-learning based recommendation models
+In recent years, deep learning techniques have enabled advancements in recommendation systems, particularly with architectures like the dual encoder. Deep neural networks are advantageous for recommendation systems because they can integrate multiple neural building blocks into a single, trainable function. This is useful for content-based recommendations involving multi-modal data, such as text (reviews, tweets) and images (social posts, product images). Using CNNs/RNNs for this data allows for joint end-to-end representation learning, surpassing traditional methods that require designing modality-specific features.
+
+##### Strengths of deep-learning based recommendation models
+###### Nonlinear Transformations
+Unlike linear models, deep neural networks can model non-linearity in data using nonlinear activations like ReLU, sigmoid, and tanh. This capability allows them to capture complex and intricate user-item interaction patterns
+
+###### Representation Learning
+Deep neural networks effectively learn underlying factors and useful representations from input data. They leverage extensive descriptive information about items and users, enhancing our understanding and improving recommendation accuracy.
+
+###### Sequence Modelling
+Deep neural networks excel in sequential modeling tasks like machine translation, natural language understanding, and speech recognition. They are well-suited for capturing the temporal dynamics of user behavior and item evolution, making them ideal for applications like next-item prediction and session-based recommendations.
+
+###### Flexbility
+Deep learning techniques are highly flexible, allowing easy combination of neural structures to create hybrid models or replace modules. This enables the development of powerful composite recommendation models that capture various characteristics and factors.
+
+##### Limitations
+###### Interpretability
+Despite their success, deep learning models are often criticized for being black boxes, with non-interpretable hidden weights and activations. This limits explainability. However, neural attention models have alleviated this concern by improving the interpretability of deep neural models. [[10]](https://dl.acm.org/doi/10.1145/3109859.3109890)
+
+###### Data 
+Another limitation of deep learning is its need for large amounts of data to support its rich parameterization. However, unlike domains such as language or vision where labeled data is scarce, recommender systems can easily gather substantial data. Million/billion scale datasets are common in both industry and academia.
+
+###### Hyperparamter Tuning
+The need for extensive hyperparameter tuning is not unique to deep learning but applies to machine learning in general. Traditional models like matrix factorization also require tuning of parameters such as regularization factors and learning rates. While deep learning may introduce additional hyperparameters, this challenge is not exclusive to it.
+
+#### Models
+Recommendation models leveraging neural building blocks are categorized into eight subcategories aligned with deep learning models: MLP, AE, CNNs, RNNs, RBM, NADE, AM, AN, and DRL-based recommender systems. We will describe MLP, AE, CNNs, and RNNs. 
+
+Deep learning-based recommendation models often integrate multiple deep learning techniques. The flexibility of deep neural networks allows for the combination of several neural building blocks to complement each other, resulting in a more powerful hybrid model.
+
+![](./img/dlbrs_diagram.png)
+
+##### Multilayer Perceptron based Recommendations
+The Multilayer Perceptron (MLP) is renowned for its ability to accurately approximate any measurable function, making it a powerful and versatile network. Serving as the cornerstone for many advanced techniques, MLP is extensively utilized across diverse domains.
+[[11]](https://ojs.aaai.org/index.php/AAAI/article/view/4457)
+
+###### Neural Collaborative Filtering
+Recommendation often involves a two-way interaction between user preferences and item features. For instance, matrix factorization decomposes the rating matrix into low-dimensional user and item latent factors. Constructing a dual neural network allows for modeling this interaction between users and items.
+
+![](./img/ncf_diagram.png)
+
+The scoring function is defined as:
+
+$$\hat{r}_{ui} = f(U^T * s_{u}^{user}, V^T * s_i^{item} | U,V, \theta) $$
+
+where function $f(.)$ represents the multilayer perceptron, and $θ$ is the parameters of this network. Traditional MF can be viewed as a special case of NCF. Therefore, it is convenient to fuse the neural interpretation of matrix factorization with MLP to formulate a more general model which makes use of both linearity of MF and non-linearity of MLP to enhance recommendation quality.
+
+
+The entire network can be trained with weighted square loss for explicit feedback or binary cross-entropy loss for implicit feedback, defined as:
+
+$$L = - \sum_{(u,i) \in OUO}r_{ui}log\hat{r_ui}+(1-r_{ui}log(1-\hat{r_{ui}})) $$
+
+
+###### Deep Factorization Machine
+DeepFM is an end-to-end model that combines factorization machine (FM) and multilayer perceptron (MLP). It captures both low-order and high-order feature interactions by leveraging the operations of addition and inner product in FM for linear and pairwise interactions, and the non-linear activations and deep structure in MLP for high-order interactions. Inspired by the wide & deep network, DeepFM replaces the wide component with a neural interpretation of FM, eliminating the need for extensive feature engineering. The input of DeepFM consists of user-item pairs along with their features. The prediction score is computed by combining the outputs of FM and MLP, represented as $y_{FM}$ and $y_{MLP}$, respectively. [[12]](https://dl.acm.org/doi/10.1145/3511808.3557240)
+
+$$\hat{r}_{ui} = \sigma(y_{FM}(x) + y_{MLP}(x))$$
+
+###### Feature Representation with MLP
+
+Originally crafted for app recommendations within Google Play, the overarching model features two primary components: a wide learning unit and a deep learning unit. This dual structure enables the model to encompass both memorization and generalization capabilities. The wide component specializes in memorizing direct features gleaned from past data, while the deep component focuses on producing broader, abstract representations to aid in generalization. This amalgamation of techniques enhances the model's ability to provide more accurate and diverse recommendations.[[13]](https://dl.acm.org/doi/10.1145/3018661.3018665)
+
+![](./img/wdl_diagram.png)
+
+Formally, the learning process is represented by the equation $y = W_{wide}^T{x, \phi(X)} + b$, where $W_{wide}^T$ and $b$ denote the model parameters.
+
+The input ${x, \phi(x)}$ represents the concatenated feature set, comprising the raw input feature $x$ and the transformed feature $\phi(x)$. Each layer of the deep neural component follows the formula $a^{(l+1)}= f(W_{deep}^{(l)}+b^{(l)})$, where $l$ denotes the layer index, $f(.)$ represents the activation function, and $W_{deep}^{(i)}$ and $b^{(l)}$ are the weight and bias terms, respectively. The wide and deep learning model is achieved by combining these two models.
+
+$$P(\hat{r}_{ui} = 1|x = \sigma(W_{wide}^T,{x, \phi(x) + W_{deep}^Ta^{(l_f)} + bias} )) $$
+
+In this equation, $\sigma(.)$ represents the sigmoid function, $\hat{r}_{ui}$ denotes the binary rating label, and $a^{(l_f)}$ signifies the final activation. The joint model is optimized using stochastic back-propagation, following the regularized leader algorithm. Finally, the recommendation list is generated based on the predicted scores.
+
+###### Recommendation with Deep Structured Semantic Model
+The Deep Structured Semantic Model (DSSM) is a deep neural network designed to learn semantic representations of entities and measure their semantic similarities. It's commonly applied in information retrieval and particularly well-suited for top-n recommendation tasks. DSSM maps entities into a shared low-dimensional space and computes their similarities using the cosine function. [[14]](https://dl.acm.org/doi/10.1145/3485447.3512065)
+
+Deep Semantic Similarity based Personalized Recommendation (DSPR) is a personalized recommender system that utilizes tag annotations to represent users and items. Both users and items are mapped into a common tag space, and cosine similarity is used to measure the relevance between users and items. The loss function of DSPR is defined as:
+
+$$ L = - \sum_{u, i}[log(e^{sim(u,i*)} -  log \sum_{u,i} e^{sim(u,i)})] $$
+
+Negative samples $(u, i)$ are randomly chosen pairs of users and items that are not positively associated, serving as contrastive examples in training.
+
+MV-DNN is tailored for cross-domain recommendation, where users are considered as the central view and each domain (assuming there are Z domains) as auxiliary views. Each user-domain pair has a corresponding similarity score. The loss function of MV-DNN is then defined based on these similarity scores.
+
+$$ L = argmin_\theta \sum_{j=1} \frac{exp(\gamma * cosine(Y_u, Y_{u,j}))}{\sum{exp(\gamma*cosine(Y_u, f_a(X')))}{}}$$
+
+In this equation, $\theta$ represents the model parameters, $y$ is the smoothing factor, $Y_u$ denotes the output of the user view, and $a$ is the index of the active view. $R^{da}$ represents the input domain of view $a$. MV-DNN is able to handle multiple domains effectively.
+
+
 
 
 ## References
@@ -192,3 +279,12 @@ In recent years, deep learning techniques have enabled advancements in recommend
 
 [9] [Two tower model for retrieval](https://recsysml.substack.com/p/two-tower-models-for-retrieval-of)
 
+[10] [Interpretable convolutional neural networks with dual local and global attention for review rating prediction](https://dl.acm.org/doi/10.1145/3109859.3109890)
+
+[11] [Camo: A collaborative ranking method for content based recommendation](https://ojs.aaai.org/index.php/AAAI/article/view/4457)
+
+[12] [Asymmetrical Context-aware Modulation for Collaborative Filtering Recommendation](https://dl.acm.org/doi/10.1145/3511808.3557240)
+
+[13] [Joint Deep Modeling of Users and Items Using Reviews for Recommendation](https://dl.acm.org/doi/10.1145/3018661.3018665)
+
+[14] [Hypercomplex Graph Collaborative Filtering](https://dl.acm.org/doi/10.1145/3485447.3512065)
