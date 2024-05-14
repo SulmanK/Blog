@@ -257,8 +257,145 @@ $$ L = argmin_\theta \sum_{j=1} \frac{exp(\gamma * cosine(Y_u, Y_{u,j}))}{\sum{e
 
 In this equation, $\theta$ represents the model parameters, $y$ is the smoothing factor, $Y_u$ denotes the output of the user view, and $a$ is the index of the active view. $R^{da}$ represents the input domain of view $a$. MV-DNN is able to handle multiple domains effectively.
 
+##### Autoencoder based Recommendation
+Autoencoders can enhance recommender systems in two primary ways:
+
+1) Feature Learning: Autoencoders can be used to learn lower-dimensional representations of user-item interactions at the bottleneck layer, effectively compressing the data into a more manageable form.
+
+2) Matrix Completion: Autoencoders can directly fill in the missing entries of the interaction matrix in the reconstruction layer, predicting user preferences for unseen items.
+
+Various types of autoencoders, including denoising, variational, contractive, and marginalized autoencoders, can be adapted for these recommendation tasks.
+
+###### Autoencoder based Collaborative Filtering
+AutoRec uses either user partial vectors r(u)r(u) or item partial vectors r(i)r(i) as inputs to reconstruct them in the output layer. There are two versions of AutoRec:
+
+- Item-based AutoRec
+- User-based AutoRec
+
+The objective function for item-based AutoRec (I-AutoRec) is designed to minimize the reconstruction error between the original and predicted item vectors.
+
+$$ argmin_\theta \sum_{i = 1}^N || r^{(i)} - h(r^{(i)} ; \theta) ||^2 + \lambda * reg $$
+
+Before deploying AutoRec, consider these key points:
+
+- **Performance**: I-AutoRec generally outperforms U-AutoRec, likely due to higher variance in user vectors.
+- **Activation Functions**: The choice of activation functions $f(.)$ and $g(.)$ significantly impacts performance.
+- **Hidden Units**: Moderately increasing the number of hidden units can improve results by enhancing the model's capacity.
+- **Depth**: Adding more layers to create a deep network can lead to slight performance improvements.
+
+![](./img/iautorec_diagram.png)
+
+Collaborative Denoising Autoencoder (CDAE) is used for ranking prediction based on user implicit feedback $r^{(u)}_{pref}$​, where entries are 1 if the user likes an item and 0 otherwise. The input is corrupted by Gaussian noise, resulting in a corrupted version $p(\hat{r}^{(u)}_{pref}| r^{(u)}_{pref})$​ drawn from a conditional Gaussian distribution. The reconstruction is represented as:
+
+$$ h(\hat{r}^{(u)}_{pref}) = f(W_2 * g(W_1 * \hat{r}^{(u)}_{pref} + V_u + b_1) + b_2)$$
+
+CDAE parameters are optimized by minimizing the reconstruction error between the original and reconstructed inputs.
+
+$$argmin_{W_1, W_2, V, b_1, b_2} \frac{1}{M} \sum_{u = 1}^M E_{p(\hat{r}^{(u)}_{pref}|r^{(u)}_{pref})}[l(\hat{r}^{(u)}_{pref}, h(\hat{r}^{(u)}_{pref})] + \lambda * reg$$
+
+CDAE initially updates its parameters using SGD over all feedback. However, considering all ratings is impractical in real-world applications. To address this, the authors proposed a negative sampling technique, which selects a small subset from the negative set (items the user hasn't interacted with). This approach significantly reduces time complexity without compromising ranking quality.
+
+![](./img/CDAE_diagram.png)
 
 
+###### Feature Representation Learning with Autoencoder
+Autoencoders are powerful for learning feature representations and can be used in recommender systems to extract features from user or item content.
+
+Collaborative Deep Learning (CDL) is a hierarchical Bayesian model that combines stacked denoising autoencoders (SDAE) with probabilistic matrix factorization (PMF). The authors introduced a general Bayesian deep learning framework with two interconnected components:
+
+- Perception Component: Provides a probabilistic interpretation of ordinal SDAE.
+- Task Component: Utilizes PMF for recommendation.
+
+This combination in CDL allows balancing side information and interaction history. The generative process of CDL is:
+
+1) For each layer $l$ of the SDAE
+
+  - For each column $n$ of weight matrix $W_l$ draw $W_{l,*n} ~ N(0, \lambda_w^{-1}I_{D1})$ 
+  - Draw the bias vector $b_1 ~ N(0, \lambda_W^{-1}I_D)$ 
+  - For each row $i$ of $X_i$, draw $X_{i,i*} ~ N(\sigma(X_{l-1, *}W_l + b_l), \lambda_x^{-1}I_{D_l})$ 
+
+2) For each item $i$ 
+
+  - Draw a clean input $X_{c,i*} ~ N(X_L,i* \lambda_n^{-1}I_{l_1})$ 
+  - Draw a latent offset vector $\epsilon_1 ~ N(0, \lambda_v^{-1}I_D)$ and set the latent item vector: $V_i = \epsilon_i + X_{L}^T$ 
+  - Draw a latent user vector for each user $u$, $U_u ~ N(0, \lambda_u^{-1}I_D)$ 
+  - Draw a rating $r_{ut}$ for each user-item pair $(u,i), r_{ui} ~ N(U^T_uV_i, C^{-1}_{ui})$ 
+
+Here, $W_l$​ and $b_l$​ are the weight matrix and bias vector for layer $l$, $X_l$​ represents layer $l$, and $\lambda_w$​, $\lambda_x$​, $\lambda_n$​, $\lambda_v$​, $\lambda_u$​ are hyperparameters. $C_{ui}$​ is a confidence parameter for the observations.
+
+![](./img/CDL_diagram.png)
+
+
+In Collaborative Deep Ranking (CDR), tailored for pairwise top-n recommendation, the generative process is as follows:
+
+1) For each layer $l$ of the SDAE:
+
+  - (Same as CDL)
+
+2) For each item $i$:
+  
+  - (Same as CDL)
+
+3) For each user $u$:
+  
+  - Draw a latent user vector for $u, U_u ~N(0, \lambda_u^{-1}I_D)$ 
+  - For each pair-wise preference $(i,j) \in P_i$ where $P_i = {(i,j):r_{ui} - r_{uj} > 0}$ , draw the estimator, $\delta_{uij} ~ N(U^T_uV_i - U^T_uV_j, C^{-1}_{uij})$ 
+
+ $\delta_{uij} = r_{ui} - r_{uj}$ represents the pairwise relationship of a user's preference between item $i$ and item $j$, where $r_{ui}$​ and $r_{uj}$​ are the ratings of items $i$ and $j$ by user $u$, respectively. $C_{uij}^{−1}$​ is a confidence value indicating how much user $u$ prefers item $i$ over item $j$.
+
+![](./img/CDR_diagram.png)
+
+##### Convolutional Neural Networks based Recommendation
+Convolutional Neural Networks (CNNs) excel at processing unstructured multimedia data by leveraging convolution and pooling operations. Many recommendation models based on CNNs utilize these capabilities for feature extraction from multimedia inputs.
+
+![](./img/cnn_diagram.png)
+
+###### Feature Representation Learning with CNNs
+CNNs are versatile for feature representation learning from various sources like images, text, audio, and video. In the context of point-of-interest (POI) recommendation, CNNs are utilized for image feature extraction. For instance, Visual POI (VPOI) leverages CNNs to extract image features. The recommendation model, built on Probabilistic Matrix Factorization (PMF), explores interactions between visual content and latent user factors, as well as visual content and latent location factors.
+
+In CNNs used for recommendation systems, convolutional and max-pooling layers extract visual features from image patches. These features, along with user information, contribute to personalized recommendations. The network typically comprises two CNNs for image representation learning and a Multilayer Perceptron (MLP) for modeling user preferences.
+
+During training, the network compares pairs of images: one positive image (liked by the user) and one negative image (disliked by the user) against the user's preferences. Training data consists of triplets $t$ where the positive image $I_t^+$​ should be closer to the user UtUt​ than the negative image $I_t^−$​ according to a distance metric $D(π(U_t),ϕ(I_t^−))D(π(U_t​)$, where $D(.)$ represents the distance metric, such as Euclidean distance.
+
+###### Graph CNNs for Recommendation
+
+Graph Convolutional Networks (GCNs) are potent tools for handling non-Euclidean data like social networks, knowledge graphs, and protein-interaction networks. In the realm of recommendations, interactions can be structured as bipartite graphs, making GCNs applicable to recommendation tasks. This framework facilitates the integration of user/item side information, such as social networks and item relationships, into recommendation models.
+
+Their model generates item embeddings from both graph structure and item feature information using random walk and GCNs. This approach is well-suited for large-scale web recommender systems. The proposed model has been successfully deployed in Pinterest to address various real-world recommendation tasks.
+
+![](./img/gcnn.png)
+
+##### Recurrent Neural Networks based Recommendations
+RNNs are perfect for processing sequential data, making them ideal for capturing the temporal dynamics of user interactions and behaviors, as well as handling sequential signals like text and audio.
+
+![](./img/rnn.png)
+
+###### Session-based Recommendation without User Identifier
+In various real-world applications or websites, users may not always log in, depriving the system of access to their identifiers and long-term consumption habits or interests. However, mechanisms like sessions or cookies enable these systems to capture users' short-term preferences.
+
+GRU4Rec is a session-based recommendation model where the input represents the current state of a session using 1-of-N encoding, indicating which items are active in the session. The output predicts the likelihood of each item being the next in the session. To train the model efficiently, the authors introduced a session-parallel mini-batches algorithm and a sampling method for output. The ranking loss, called Top!, is utilized, focusing on the relative ranking of items rather than their absolute scores.
+
+$$ L_s = \frac{1}{S} \sum_{j=1}^S \sigma(\hat{r_{si}} - \hat{r_si}) + \sigma(\hat{r}^2_{sj})$$
+
+S is the sample size, $\hat{r}_{sj}$ and $\hat{r}_{sj}$ are the scores on negative item $i$ and positive item $j$ at session $s$, $\sigma$ is the logistic sigmoid function. The last term is used as a regularization.
+
+![](./img/sbrrn_diagram.png)
+
+###### Sequential Recommendation with User Identifier
+In contrast to session-based recommenders, which typically lack user identifiers, the following studies focus on sequential recommendation tasks where user identifications are known.
+
+Recurrent Recommender Network (RRN) is a non-parametric recommendation model built on RNNs. It models seasonal item evolution and user preference changes over time. It employs two LSTM networks to capture dynamic user $(u_{ut})$ and item $(v_{it})$ states. Alongside, it incorporates fixed properties like user long-term interests and item static features, integrating stationary latent attributes for users $​(u_u)$ and items $(v_i)$. The predicted rating of item $j$ by user $i$ at time $t$ is defined as:
+
+$$ r_{ui|t} = f(u_{ut}, v_{it}, u_u, v_i)$$
+
+In this model, $u_{ut}$​ and $v_{it}$​ are learned through LSTM, while $u_u$​ and $v_i$​ are learned via standard matrix factorization. The optimization objective is to minimize the squared error between predicted and actual ratings.
+
+
+![](./img/RRN_diagram.png)
+##### Feature Representation Learning with RNNs
+For side information with sequential patterns, employing RNNs for representation learning is a wise choice. The interactions between users and items significantly influence changes in user preferences and item status. To model these historical interactions, researchers suggest using RNNs to automatically learn representations of the influences from user-item interactions, including drift, evolution, and co-evolution of user and item features.
+
+Bansal et al. introduced a hybrid model that uses GRUs to encode text sequences into a latent factor model, effectively tackling both warm-start and cold-start issues in recommendation systems. They also introduced a multi-task regularizer to prevent overfitting and mitigate data sparsity. The primary task is rating prediction, while an auxiliary task predicts item meta-data like tags and genres. [[16]](https://arxiv.org/pdf/1609.02116)
 
 ## References
 [1] [Recent Developments in Recommender Systems: A Survey](https://arxiv.org/abs/2306.12680)
@@ -288,3 +425,7 @@ In this equation, $\theta$ represents the model parameters, $y$ is the smoothing
 [13] [Joint Deep Modeling of Users and Items Using Reviews for Recommendation](https://dl.acm.org/doi/10.1145/3018661.3018665)
 
 [14] [Hypercomplex Graph Collaborative Filtering](https://dl.acm.org/doi/10.1145/3485447.3512065)
+
+[15] [Recurrent Recommender Networks](https://dl.acm.org/doi/10.1145/3018661.3018689)
+
+[16] [Ask the gru: Multi-task learning for deep text recommendations](https://arxiv.org/pdf/1609.02116)
