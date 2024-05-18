@@ -1,5 +1,5 @@
 ---
-draft: true
+draft: false
 
 
 date: 2024-04-28
@@ -7,23 +7,34 @@ slug: RecSys-Overview
 
 categories:
   - Recommendation Systems
-  - Modeling 
   - Data Science
+  - Deep Learning Recommendation Models
 authors:
   - sulmank
 ---
 # Recommendation Systems: Overview
 
 ## Introduction
+!!! abstract "Purpose"
+    This article will cover an overview of recommendation systems. The content will be structured to answer the following questions:
+
+    - What is RecSys?
+    - What is the importance of Recommender Systems?
+    - What are the main challenges faced in Recommender Systems?
+    - What are the common evaluation metrics utilized in Recommender Systems?
+    - What are the various methods employed in Recommendation Systems?
+    - How has neural network architecture been utilized in Recommender Systems?
+    
+    <!-- more -->
 
 ### What is RecSys?
 Recommender systems suggest things you might like by analyzing your preferences, item details, and how you've interacted with them. 
 Personalized recommender systems predict individual preferences based on past behavior, while group recommender systems consider collective preferences to resolve conflicts. Personalized systems focus on tailoring recommendations to individual interests and are the most studied type. [[1]](https://arxiv.org/abs/2306.12680)
 
-### Why do we care about Recsys?
+### What is the importance of Recommender Systems?
 In industry, recommender systems are crucial for improving user experience and driving sales on online platforms. For instance, 80% of Netflix movie views and 60% of YouTube video clicks stem from recommendations. [[2]](https://dl.acm.org/doi/pdf/10.1145/2843948),[[3]](https://dl.acm.org/doi/10.1145/1864708.1864770). Recommender systems are vital for keeping users engaged by supplying relevant items.engaged on the platform. 
 
-### Problems from RecSys
+### What are the main challenges faced in Recommender Systems?
 In commercial applications, a recommender system's robustness, data bias, and fairness are critical for its success. Robustness ensures accurate recommendations despite changing data. Data bias refers to systematic errors that can lead to unfair recommendations. Fairness means providing unbiased recommendations regardless of user characteristics. [[1]](https://arxiv.org/abs/2306.12680) 
 
 #### Robustness
@@ -34,7 +45,7 @@ Adversarial attacks test recommender system robustness by altering image or text
 Adversarial attacks test recommender system robustness by altering inputs like pixel values or text. In natural language processing, attackers exploit embeddings, such as user or item profiles, exposure bias, and position bias for attacks. Addressing biases is crucial for reliable recommendations.
 
 ##### Popularity deviation
-Popularity deviation, akin to a long-tail problem, occurs when a small number of highly popular items dominate user interactions, while less popular items receive little attention. This skews model training towards popular items, resulting in unfair recommendations favoring popular items over others.
+Popularity deviation is a challenge similar to the long-tail problem. It occurs when a small number of highly popular items dominate user interactions, while less popular items receive little attention. This skews model training towards popular items, resulting in unfair recommendations favoring popular items over others.
 
 ##### Selection bias
 Selection bias arises when users tend to rate only products they strongly like or dislike, causing a Missing-Not-At-Random (MNAR) problem and skewing recommendations.
@@ -49,7 +60,7 @@ Positional deviation refers to users' tendency to interact more with items place
 Recommender system fairness includes user-based and item-based fairness. User-based fairness ensures no discrimination based on sensitive attributes, while item-based fairness ensures equal recommendation opportunities for all items. The cold-start and long-tail problems are examples of item-based fairness issues, with the latter also linked to exposure bias.
 
 ##### User-Based Fairness
-Researchers are actively exploring methods like meta-learning, adversarial training, and differential privacy to improve user-based fairness in machine learning models. Approaches such as Cold-Transformer aim to enhance user preference accuracy by incorporating context-based embeddings. These efforts highlight the significance of addressing fairness and privacy concerns to better serve under-served users. [[4]](https://dl.acm.org/doi/proceedings/10.1145/3477495)
+Researchers are actively exploring methods like meta-learning, adversarial training, and differential privacy to improve user-based fairness in machine learning models. Approaches such as cold-transformer aim to enhance user preference accuracy by incorporating context-based embeddings. These efforts highlight the significance of addressing fairness and privacy concerns to better serve under-served users. [[4]](https://dl.acm.org/doi/proceedings/10.1145/3477495)
 
 ##### Item-Based Fairness
 Various methods address item-based fairness in recommender systems:
@@ -58,8 +69,7 @@ Various methods address item-based fairness in recommender systems:
 - Adversarial training  enhances model accuracy but may amplify popularity deviation in unbalanced data distributions. [[6]](https://dl.acm.org/doi/10.1145/3460231.3478858)
 - The FairGAN model tackles fairness by mapping it to the negative preference problem and preserving user utility. [[7]](https://dl.acm.org/doi/10.1145/3485447.3511958)
 
-
-### What are the evaluation metrics?
+### What are the common evaluation metrics utilized in Recommender Systems?
 Evaluation metrics for recommender systems can be classified into Rating Based Indicators (RBI) and Item Based Indicators (IBI). RBI assesses recommendations using predicted rating scores, while IBI evaluates recommendations based on a list of predicted items. 
 
 #### Rating-Based Indicator
@@ -78,9 +88,9 @@ In both equations, $U$ represents the set of users, $I$ represents the set of it
 RMSE and MAE are non-negative metrics, where lower values indicate better performance. However, they are sensitive to outliers because each squared difference $((\hat{r_{ui}} - r_{ui}))^2$ in RMSE, $|\hat{r_{ui}} - r_{ui}|^2$ in MAE)  contributes proportionally to the final error. [[1]](https://arxiv.org/abs/2306.12680)
 
 #### Item-Based Indicator
-![](./img/recsys_overview_cm.png)
+![](./img/cfm_table.png)
 
-When ranking information is absent in a recommender system, evaluation can utilize a confusion matrix like the Table above for assessment. In evaluation, TP represents the used items recommended by the system, while FP denotes unused items incorrectly recommended. FN indicates used items not recommended by the system. TN is the outcome of the not used items that are not recommended by the system. Commonly used metrics like Precision, Recall, and F-Measure are combinations from the previously mentioned metrics for a more holistic evaluation.
+When ranking information is absent in a recommender system, evaluation can utilize a confusion matrix. Here, TP (True Positives) represents used items recommended by the system, FP (False Positives) denotes unused items incorrectly recommended, FN (False Negatives) indicates used items not recommended, and TN (True Negatives) is the count of unused items not recommended. Common metrics such as Precision, Recall, and F-Measure are derived from these values for a comprehensive evaluation.
 
 $$Precision = \frac{TP}{TP + FP}$$
 
@@ -99,8 +109,7 @@ $$ MAR@K = \frac{\sum_{i=1}^k(Recall@i * rel(i))}{total\; number\; of\; relevant
 
 MAP@k and MAR@k utilize the indicator function $rel(i)$, where 1 indicates relevance and 0 indicates irrelevance of the $i-th$ item to the target. While useful for evaluating overall system performance, these metrics are not suitable for fine-grained numerical ratings as they require a threshold for conversion to binary correlations, leading to bias and loss of detailed information.
 
-
-### What are Recommendation System Methods?
+### What are the various methods employed in Recommendation Systems?
 Personalized recommender systems can be categorized into three main approaches:
 
   * Collaborative filtering
@@ -123,15 +132,22 @@ Similarity calculation is essential in recommender systems, especially in collab
 
 
 ##### Model-based CF
-Model-based collaborative filtering (CF) is another popular recommendation approach. It predicts user preferences based on relationships between users and items.
+Model-based collaborative filtering (CF) is another popular recommendation approach. It predicts user preferences based on relationships between users and items. This is commonly known as the Two-Tower paradigm.
 
-The neural-based CF framework involves mapping user and item representations ($s_u$ and $s_i$) along with reviewing text data ($t_{ui}$) to a continuous vector space through a neural network ($NN$). The model parameters ($\theta$) are optimized to minimize prediction error. The output of the neural network ($\hat{r}$) represents the predicted rating, typically used in factorization-based methods for further refinement. 
+The two tower model encompasses two main components:
 
-The Factorization Machine (FM) is a tool in neural-based CF, adept at efficiently handling sparse data, a common challenge in user-item interaction data. This versatility extends to incorporating various features, both categorical and numerical, making it well-suited for real-world recommendation tasks. Its scalability in training procedures further solidifies its popularity for large-scale recommendation systems.
+* user embeddings
+* item embeddings
 
-The factorization machine predicts the output $y \in R$, which considers the dot product between $\omega$ and $x$ as well as the dot product between the rows of $V$. The weight parameter $w \in R^d$ and the factorization matrix $V \in R^{dxk}$ are key components of the model, with $k$ being a rank hyperparameter that can be adjusted based on the data type.
- 
-$$y_{FM} := <w,x> + \sum_{i>j}<v_j,v_i>x_jx_i$$
+User preference history, including liked items and timestamps, past searches, location, preferred languages, and relevant metadata are considered for recommendations. [[9]](https://recsysml.substack.com/p/two-tower-models-for-retrieval-of)
+
+![](./img/user_embeddings.png)
+
+Gathers information about recommendable items, including their title, description, metadata like language and publisher, and dynamic data such as views and likes over time.
+
+![](./img/item_embeddings.png)
+
+These components are combined by computing their dot product. A high dot product value indicates a good match between the user and the item.
 
 #### Content-based
 The content-based recommender system classifies items based on attribute information for personalized recommendations. Unlike collaborative filtering, it treats recommendations as a user-specific classification problem, learning a classifier from item features. It focuses on user preference models and interaction history. Item classification in content-based RS relies on item features obtained through item presentation algorithms. Side information can include metadata or user-generated content, typically item descriptions or full-text indexing. 
@@ -151,28 +167,10 @@ Recommender systems have evolved to require integration of multiple data sources
 ##### Why is a hybrid approach suitable?
 The cold start problem in collaborative filtering occurs when new users have insufficient data for personalized recommendations. To address this, a hybrid approach can be adopted, starting with content-based recommendations until enough user data is collected. Once sufficient data is available, the system can transition to collaborative filtering for more accurate and personalized recommendations.
 
-##### Two-Tower
-The two tower model encompasses two main components:
+#### ow has neural network architecture been utilized in Recommender Systems?
+In recent years, deep learning has significantly advanced recommendation systems, especially with architectures like the dual encoder. Deep neural networks are beneficial as they integrate multiple neural building blocks into a single, trainable function. This is particularly useful for content-based recommendations involving multi-modal data, such as text (reviews, tweets) and images (social posts, product images). CNNs and RNNs enable joint end-to-end representation learning, outperforming traditional methods that require designing modality-specific features.
 
-* user embeddings
-* item embeddings
-
-###### User embeddings
-User preference history, including liked items and timestamps, past searches, location, preferred languages, and relevant metadata are considered for recommendations. [[9]](https://recsysml.substack.com/p/two-tower-models-for-retrieval-of)
-
-![](./img/user_embeddings.png)
-
-###### Item embeddings
-Gathers information about recommendable items, including their title, description, metadata like language and publisher, and dynamic data such as views and likes over time.
-
-![](./img/item_embeddings.png)
-
-These components are combined by computing their dot product. A high dot product value indicates a good match between the user and the item.
-
-#### Deep-learning based recommendation models
-In recent years, deep learning techniques have enabled advancements in recommendation systems, particularly with architectures like the dual encoder. Deep neural networks are advantageous for recommendation systems because they can integrate multiple neural building blocks into a single, trainable function. This is useful for content-based recommendations involving multi-modal data, such as text (reviews, tweets) and images (social posts, product images). Using CNNs/RNNs for this data allows for joint end-to-end representation learning, surpassing traditional methods that require designing modality-specific features.
-
-##### Strengths of deep-learning based recommendation models
+##### Strengths
 ###### Nonlinear Transformations
 Unlike linear models, deep neural networks can model non-linearity in data using nonlinear activations like ReLU, sigmoid, and tanh. This capability allows them to capture complex and intricate user-item interaction patterns
 
@@ -224,13 +222,18 @@ $$L = - \sum_{(u,i) \in OUO}r_{ui}log\hat{r_ui}+(1-r_{ui}log(1-\hat{r_{ui}})) $$
 
 
 ###### Deep Factorization Machine
-DeepFM is an end-to-end model that combines factorization machine (FM) and multilayer perceptron (MLP). It captures both low-order and high-order feature interactions by leveraging the operations of addition and inner product in FM for linear and pairwise interactions, and the non-linear activations and deep structure in MLP for high-order interactions. Inspired by the wide & deep network, DeepFM replaces the wide component with a neural interpretation of FM, eliminating the need for extensive feature engineering. The input of DeepFM consists of user-item pairs along with their features. The prediction score is computed by combining the outputs of FM and MLP, represented as $y_{FM}$ and $y_{MLP}$, respectively. [[12]](https://dl.acm.org/doi/10.1145/3511808.3557240)
+DeepFM is an end-to-end model combining factorization machines (FM) and multilayer perceptrons (MLP). It captures low-order feature interactions through FM and high-order interactions via MLP's deep structure. Inspired by the wide & deep network, DeepFM replaces the wide component with a neural FM, reducing the need for extensive feature engineering. The input includes user-item pairs and their features.
+
+![](./img/deepfm.png)
+
+
+The prediction score is computed by combining the outputs of FM and MLP, represented as $y_{FM}$ and $y_{MLP}$, respectively. [[12]](https://dl.acm.org/doi/10.1145/3511808.3557240)
 
 $$\hat{r}_{ui} = \sigma(y_{FM}(x) + y_{MLP}(x))$$
 
 ###### Feature Representation with MLP
 
-Originally crafted for app recommendations within Google Play, the overarching model features two primary components: a wide learning unit and a deep learning unit. This dual structure enables the model to encompass both memorization and generalization capabilities. The wide component specializes in memorizing direct features gleaned from past data, while the deep component focuses on producing broader, abstract representations to aid in generalization. This amalgamation of techniques enhances the model's ability to provide more accurate and diverse recommendations.[[13]](https://dl.acm.org/doi/10.1145/3018661.3018665)
+Originally designed for Google Play app recommendations, the model comprises two main components: a wide learning unit and a deep learning unit. The wide unit memorizes direct features from past data, while the deep unit generates abstract representations for generalization. This combination enhances the model's accuracy and diversity in recommendations.[[13]](https://dl.acm.org/doi/10.1145/3018661.3018665)
 
 ![](./img/wdl_diagram.png)
 
@@ -351,7 +354,7 @@ Convolutional Neural Networks (CNNs) excel at processing unstructured multimedia
 ![](./img/cnn_diagram.png)
 
 ###### Feature Representation Learning with CNNs
-CNNs are versatile for feature representation learning from various sources like images, text, audio, and video. In the context of point-of-interest (POI) recommendation, CNNs are utilized for image feature extraction. For instance, Visual POI (VPOI) leverages CNNs to extract image features. The recommendation model, built on Probabilistic Matrix Factorization (PMF), explores interactions between visual content and latent user factors, as well as visual content and latent location factors.
+Convolutional Neural Networks (CNNs) excel at feature representation learning from images, text, audio, and video. In Point-of-Interest (POI) recommendation, CNNs are particularly effective for image feature extraction. For example, Visual POI (VPOI) uses CNNs to extract features from images. This data is then integrated into a recommendation model based on Probabilistic Matrix Factorization (PMF), which examines the interactions between visual content and both latent user factors and latent location factors.
 
 In CNNs used for recommendation systems, convolutional and max-pooling layers extract visual features from image patches. These features, along with user information, contribute to personalized recommendations. The network typically comprises two CNNs for image representation learning and a Multilayer Perceptron (MLP) for modeling user preferences.
 
@@ -359,7 +362,7 @@ During training, the network compares pairs of images: one positive image (liked
 
 ###### Graph CNNs for Recommendation
 
-Graph Convolutional Networks (GCNs) are potent tools for handling non-Euclidean data like social networks, knowledge graphs, and protein-interaction networks. In the realm of recommendations, interactions can be structured as bipartite graphs, making GCNs applicable to recommendation tasks. This framework facilitates the integration of user/item side information, such as social networks and item relationships, into recommendation models.
+Graph Convolutional Networks (GCNs) excel at handling non-Euclidean data like social networks and knowledge graphs. In recommendations, GCNs can model interactions as bipartite graphs, integrating user and item information, such as social networks and item relationships, into the recommendation process.
 
 Their model generates item embeddings from both graph structure and item feature information using random walk and GCNs. This approach is well-suited for large-scale web recommender systems. The proposed model has been successfully deployed in Pinterest to address various real-world recommendation tasks.
 
@@ -373,7 +376,7 @@ RNNs are perfect for processing sequential data, making them ideal for capturing
 ###### Session-based Recommendation without User Identifier
 In various real-world applications or websites, users may not always log in, depriving the system of access to their identifiers and long-term consumption habits or interests. However, mechanisms like sessions or cookies enable these systems to capture users' short-term preferences.
 
-GRU4Rec is a session-based recommendation model where the input represents the current state of a session using 1-of-N encoding, indicating which items are active in the session. The output predicts the likelihood of each item being the next in the session. To train the model efficiently, the authors introduced a session-parallel mini-batches algorithm and a sampling method for output. The ranking loss, called Top!, is utilized, focusing on the relative ranking of items rather than their absolute scores.
+GRU4Rec is a session-based recommendation model using 1-of-N encoding to represent active session items. It predicts the likelihood of the next item in the session. Efficient training is achieved with a session-parallel mini-batches algorithm and an output sampling method. The model employs a ranking loss called Top!, which focuses on the relative ranking of items.
 
 $$ L_s = \frac{1}{S} \sum_{j=1}^S \sigma(\hat{r_{si}} - \hat{r_si}) + \sigma(\hat{r}^2_{sj})$$
 
@@ -393,9 +396,9 @@ In this model, $u_{ut}$​ and $v_{it}$​ are learned through LSTM, while $u_u$
 
 ![](./img/RRN_diagram.png)
 ##### Feature Representation Learning with RNNs
-For side information with sequential patterns, employing RNNs for representation learning is a wise choice. The interactions between users and items significantly influence changes in user preferences and item status. To model these historical interactions, researchers suggest using RNNs to automatically learn representations of the influences from user-item interactions, including drift, evolution, and co-evolution of user and item features.
+For side information with sequential patterns, RNNs are ideal for representation learning. User-item interactions impact changes in preferences and item status. RNNs can model these historical interactions, learning representations of influences like drift, evolution, and co-evolution of user and item features.
 
-Bansal et al. introduced a hybrid model that uses GRUs to encode text sequences into a latent factor model, effectively tackling both warm-start and cold-start issues in recommendation systems. They also introduced a multi-task regularizer to prevent overfitting and mitigate data sparsity. The primary task is rating prediction, while an auxiliary task predicts item meta-data like tags and genres. [[16]](https://arxiv.org/pdf/1609.02116)
+Bansal et al. proposed a hybrid model employing GRUs to encode text sequences, addressing both warm-start and cold-start challenges in recommendation systems. They introduced a multi-task regularizer to counter overfitting and alleviate data sparsity. The primary task focuses on rating prediction, while an auxiliary task predicts item metadata such as tags and genres.[[16]](https://arxiv.org/pdf/1609.02116)
 
 ## References
 [1] [Recent Developments in Recommender Systems: A Survey](https://arxiv.org/abs/2306.12680)
