@@ -128,8 +128,21 @@ Once news and user interests are modeled, the next step is to rank candidate new
 
 !!! question "How do we evaluate these methods?"
 
+Various metrics evaluate news recommender system performance, focusing on ranking relevance. The Area Under Curve (AUC) score is commonly used, especially in methods treating recommendation as a classification problem.
 
+$$ AUC = \frac{|\left((i,j)|Rank(p_i) < Rank(n_j)\right)|}{N_pN_n}$$
 
+$N_p$ and $N_n$ represent the numbers of positive and negative samples, respectively. $p_i$ is the predicted score of the $i$-th positive sample, and $n_j$ is the score of the $j$-th negative sample.
+
+Due to the large volume of news, users typically focus more on news at the top of the recommendation list. Some methods adjust recommendation results based on the ranking list. Common ranking evaluation metrics include MRR (mean reciprocal rank) and NDCG (normalized discounted cumulative gain).
+
+$$MRR = \frac{1}{|U|}\sum_{u \in U}\frac{1}{rank_a}$$
+
+Here, $u \in U$ traverses all users, and $rank_u$ denotes the position of the first TP example in the user recommendation list.
+
+$$ NDCG@K = \frac{\sum_{i = 1}^k (2^{r_i} - 1)/log_2(l+i)}{\sum_{u \in U} 1/log_2(l+i)}$$ 
+
+where $r_i$ is the relevance score of the $i$-th news. If user clicks on the $i$-th news, the value of $r_i$ is 1.
 
 ## References
 [1] [Hypernews: simultaneous news recommendation and active-time prediction via a double-task deep neural network.](https://www.ijcai.org/Proceedings/2020/482)
