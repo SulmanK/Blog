@@ -14,6 +14,7 @@ authors:
   - sulmank
 ---
 # RecSys Challenge 2024: Exploratory Data Analysis
+## Introduction
 !!! abstract "Purpose"
     This article will cover the exploratory data analysis of the RecSys 2024 Challenge dataset. The content will be structured into the following sections:
 
