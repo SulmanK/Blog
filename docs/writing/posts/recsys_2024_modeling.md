@@ -144,6 +144,318 @@ $$ NDCG@K = \frac{\sum_{i = 1}^k (2^{r_i} - 1)/log_2(l+i)}{\sum_{u \in U} 1/log_
 
 where $r_i$ is the relevance score of the $i$-th news. If user clicks on the $i$-th news, the value of $r_i$ is 1.
 
+## Model Selection
+We will explore news recommendation systems, starting from first principles and progressing to state-of-the-art approaches. This will include exploring content-based approaches and hybrid-based approaches.
+
+
+### Content Based
+Our first approach will be utilizing TF-IDF vectorization because of its simplicity.
+
+#### TF-IDF vectorization
+It stands for **Term Frequency-Inverse Document Frequency** and aims to quantify the importance of each word in a document relative to a collection of documents (the corpus). Words that appear frequently in a document but rarely in the rest of the corpus get high scores, making them important features.
+It has three major components:
+
+(1) **Term Frequency (TF)**: Measures how frequently a term occurs in a document.
+
+$$ TF(t, d) = \frac{\text{Number of times term } t \text{ appears in document } d}{\text{Total number of terms in document } d}$$
+
+(2) **Inverse Document Frequency (IDF)**: Reduces the weight of terms that occur in many documents, as they are less informative.
+
+$$ IDF(t) = \log\left(\frac{\text{Total number of documents}}{\text{Number of documents containing term } t}\right)$$
+
+(3) **TF-IDF Score**: Combines TF and IDF to assign a score to each term in a document.
+
+$$ \text{TF-IDF}(t, d) = TF(t, d) \times IDF(t)$$
+
+Next, we'll need to use a similarity method to compare documents such as cosine similarity or FAISS.
+
+
+##### Cosine Similarity
+Cosine similarity is a measure used to determine the similarity between two non-zero vectors in a multi-dimensional space. It calculates the cosine of the angle between the vectors, with values ranging from -1 to 1. In the context of NLP and recommender systems, it is commonly used to compare TF-IDF or word embeddings to evaluate the similarity between documents or items. Setting an appropriate threshold value is crucial for determining the significance of similarity. 
+
+$$ \text{cosine_similarity}(\mathbf{A}, \mathbf{B}) = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\| \|\mathbf{B}\|}$$
+
+!!! success "Implmentation"
+```python
+# Packages
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+import pandas as pd
+import sklearn
+
+# Load in training data
+# Articles
+df_art = pd.read_parquet("Data/Small/articles.parquet")
+
+# Behaviors
+df_bev = pd.read_parquet("Data/Small/train/behaviors.parquet")
+
+# History
+df_his = pd.read_parquet("Data/Small/train/history.parquet")
+
+# Preprocess the data
+# Convert datatype of column first
+df_bev['article_id'] = df_bev['article_id'].apply(lambda x: x if isinstance(x, str) else int(x) if not np.isnan(x) else x)
+
+# Join bevhaiors to article
+df = df_bev.join(df_art.set_index("article_id"), on="article_id")
+
+# Join bevhaiors to history
+df = df.join(df_his.set_index("user_id"), on="user_id")
+
+# Drop all other dataframes from me
+df_bev = []
+df_his = []
+df_art = []
+df.dropna(subset=['article_id'], inplace=True)
+
+# Change article IDs into int
+df['article_id'] = df['article_id'].apply(lambda x: int(x))
+df['article_id'] = df['article_id'].astype(np.int64)
+
+# Change age from int to string
+df['device_type'] = df['device_type'].apply(lambda x: device_(x))
+
+# Change genders from float to string
+df['gender'] = df['gender'].apply(lambda x: gender_(x))
+
+# Change age to str it's a range
+df['age'] = df['age'].astype('Int64')
+df['age'] = df['age'].astype(str)
+df['age'] = df['age'].apply(
+    lambda x: x if x == '<NA>' else x + ' - ' + x[0] + '9')
+
+
+# Change postcodes from int to str
+df['postcode'] = df['postcode'].apply(lambda x: postcodes_(x))
+
+# Modeling
+# Rand Seed
+np.random.seed(42)
+
+# Merge fields into strings for processing
+df_art['topics_str'] = df_art['topics'].apply(' '.join)
+df_art['entity_groups_str'] = df_art['entity_groups'].apply(' '.join)
+df_art['ner_clusters_str'] = df_art['ner_clusters'].apply(' '.join)
+
+# Create a dictionary for quick lookups
+article_content_dict = {
+    row['article_id']: f"{row['title']} {row['body']} {row['category_str']} {row['article_type']} "
+                       f"{row['ner_clusters_str']} {row['entity_groups_str']} {row['topics_str']}"
+    for _, row in df_art.iterrows()
+}
+
+# Fit TF-IDF vectorizer
+vectorizer = TfidfVectorizer(norm='l1')
+tfidf_matrix_all = vectorizer.fit_transform(article_content_dict.values())
+article_ids = list(article_content_dict.keys())
+
+# Map article IDs to indices in the TF-IDF matrix
+article_id_to_idx = {article_id: idx for idx, article_id in enumerate(article_ids)}
+
+# Initialize predicted impressions list
+predicted_impressions = []
+
+# Process each row of the user behavior data
+for i in df_bev.index[0:1000]:  
+    # Extract the articles viewed by the current user
+    user_article_history = df_bev.loc[i, 'article_ids_inview']
+    
+    # Map article IDs to indices if they exist in the article ID-to-index dictionary
+    indices = [article_id_to_idx[x] for x in user_article_history if x in article_id_to_idx]
+    
+    # If no valid indices are found, append None to predictions and skip further processing
+    if not indices:
+        predicted_impressions.append(None)
+        continue
+    
+    # Compute the average TF-IDF vector for the user's article history
+    user_profile_vector = tfidf_matrix_all[indices].mean(axis=0).A
+    
+    highest_similarity = 0
+    best_imp = None
+
+    # Evaluate each article in the user's history for similarity to the user's profile
+    for imp in user_article_history:
+        if imp in article_id_to_idx:
+            # Retrieve the TF-IDF vector for the article
+            imp_idx = article_id_to_idx[imp]
+            imp_tfidf_vector = tfidf_matrix_all[imp_idx].A
+
+            # Calculate the cosine similarity between the user's profile and the article
+            similarity = cosine_similarity(user_profile_vector, imp_tfidf_vector.reshape(1, -1))[0, 0]
+            
+            # Update the best match if the current similarity is higher
+            if similarity > highest_similarity:
+                highest_similarity = similarity
+                best_imp = imp
+
+    # If similarity is low, pick a random article; otherwise, use the best match
+    if highest_similarity <= 0.5:
+        impression = np.random.choice(user_article_history)
+        predicted_impressions.append(impression)
+        print(f"User {df_bev.loc[i, 'user_id']}: Low similarity, random impression chosen")
+    else:
+        predicted_impressions.append(best_imp)
+        print(f"User {df_bev.loc[i, 'user_id']}: Best impression {best_imp} with similarity {highest_similarity}")
+
+# Calculate the accuracy
+actual_impressions = [x[0] for x in df_bev['article_ids_clicked'].values][0:1000]
+
+y_pred = predicted_impressions
+y_true = actual_impressions
+acc = sklearn.metrics.accuracy_score(y_true, y_pred)
+print("-------------------------")
+print("Accuracy:", acc)
+
+```
+The model's accuracy is 0.12, which is worse than a random model that predicts impressions with a 1/6 (≈0.1667) chance.
+
+##### FAISS
+FAISS (Facebook AI Similarity Search) is a library developed by Facebook AI that provides efficient tools for similarity search and clustering of dense vectors. The central task in FAISS is finding vectors in a database that are closest to a query vector, typically using a similarity measure like cosine similarity or Euclidean distance. Setting an appropriate threshold value is crucial for determining the significance of similarity.
+
+!!! success "Implmentation"
+```python
+# Packages
+from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy as np
+import pandas as pd
+import sklearn
+
+# Load in training data
+# Articles
+df_art = pd.read_parquet("Data/Small/articles.parquet")
+
+# Behaviors
+df_bev = pd.read_parquet("Data/Small/train/behaviors.parquet")
+
+# History
+df_his = pd.read_parquet("Data/Small/train/history.parquet")
+
+# Preprocess the data
+# Convert datatype of column first
+df_bev['article_id'] = df_bev['article_id'].apply(lambda x: x if isinstance(x, str) else int(x) if not np.isnan(x) else x)
+
+# Join bevhaiors to article
+df = df_bev.join(df_art.set_index("article_id"), on="article_id")
+
+# Join bevhaiors to history
+df = df.join(df_his.set_index("user_id"), on="user_id")
+
+# Drop all other dataframes from me
+df_bev = []
+df_his = []
+df_art = []
+df.dropna(subset=['article_id'], inplace=True)
+
+# Change article IDs into int
+df['article_id'] = df['article_id'].apply(lambda x: int(x))
+df['article_id'] = df['article_id'].astype(np.int64)
+
+# Change age from int to string
+df['device_type'] = df['device_type'].apply(lambda x: device_(x))
+
+# Change genders from float to string
+df['gender'] = df['gender'].apply(lambda x: gender_(x))
+
+# Change age to str it's a range
+df['age'] = df['age'].astype('Int64')
+df['age'] = df['age'].astype(str)
+df['age'] = df['age'].apply(
+    lambda x: x if x == '<NA>' else x + ' - ' + x[0] + '9')
+
+
+# Change postcodes from int to str
+df['postcode'] = df['postcode'].apply(lambda x: postcodes_(x))
+
+# Modeling
+# Rand Seed
+np.random.seed(42)
+
+# Merge fields into strings for processing
+df_art['topics_str'] = df_art['topics'].apply(' '.join)
+df_art['entity_groups_str'] = df_art['entity_groups'].apply(' '.join)
+df_art['ner_clusters_str'] = df_art['ner_clusters'].apply(' '.join)
+
+# Create a dictionary for quick lookups
+article_content_dict = {
+    row['article_id']: f"{row['title']} {row['body']} {row['category_str']} {row['article_type']} "
+                       f"{row['ner_clusters_str']} {row['entity_groups_str']} {row['topics_str']}"
+    for _, row in df_art.iterrows()
+}
+
+# Fit TF-IDF vectorizer
+vectorizer = TfidfVectorizer(norm='l1')
+tfidf_matrix_all = vectorizer.fit_transform(article_content_dict.values())
+article_ids = list(article_content_dict.keys())
+
+# Map article IDs to indices in the TF-IDF matrix
+article_id_to_idx = {article_id: idx for idx, article_id in enumerate(article_ids)}
+
+# Initialize predicted impressions list
+predicted_impressions = []
+
+# Convert sparse matrix to dense matrix (only after dimensionality reduction)
+# Apply SVD for dimensionality reduction
+svd = TruncatedSVD(n_components=100) 
+tfidf_matrix_reduced = svd.fit_transform(tfidf_matrix_all)
+
+# Initialize FAISS index
+dim = tfidf_matrix_reduced.shape[1]
+index = faiss.IndexFlatL2(dim)
+
+# Add vectors to the FAISS index
+index.add(np.array(tfidf_matrix_reduced, dtype=np.float32))
+
+# Initialize predicted impressions list
+predicted_impressions = []
+
+# Process each user behavior
+for i in df_bev.index[:1000]:
+    user_article_history = df_bev.loc[i, 'article_ids_inview']
+    indices = [article_id_to_idx[x] for x in user_article_history if x in article_id_to_idx]
+
+    if not indices:
+        predicted_impressions.append(None)
+        continue
+
+    # Aggregate user history into a single vector
+    user_profile_vector = tfidf_matrix_reduced[indices].mean(axis=0).reshape(1, -1).astype(np.float32)
+
+    # Use FAISS to find nearest neighbors (articles) based on user profile vector
+    D, I = index.search(user_profile_vector, k=5)  # Search for top 5 nearest neighbors (articles)
+
+    # Get the most similar article based on the nearest neighbor
+    highest_similarity = D[0][0]  # The distance (smallest distance = most similar)
+    print(highest_similarity)
+    best_imp_idx = I[0][0]  # The index of the closest article
+
+    # Handle low similarity by selecting a random article
+    if highest_similarity < 0.00005:
+        impression = np.random.choice(user_article_history)
+        predicted_impressions.append(impression)
+        print(f"User {df_bev.loc[i, 'user_id']}: Low similarity, random impression chosen")
+    else:
+        best_imp = article_ids[best_imp_idx]  # Retrieve the article ID of the best match
+        predicted_impressions.append(best_imp)
+        print(f"User {df_bev.loc[i, 'user_id']}: Best impression {best_imp} with similarity {highest_similarity}")
+
+
+# Calculate the accuracy
+actual_impressions = [x[0] for x in df_bev['article_ids_clicked'].values][0:1000]
+y_pred = predicted_impressions
+y_true = actual_impressions
+acc = sklearn.metrics.accuracy_score(y_true, y_pred)
+print("-------------------------")
+print("Accuracy:", acc)
+
+```
+The model's accuracy is 0.085, which is surprisingly worse than a random model with a 1/6 (≈0.1667) chance of predicting correctly.
+
+### Hybrid-Approach
+Content-based approaches performed poorly due to the use of TF-IDF vectorization, a bag-of-words model that fails to capture relationships between words. Now, we'll use more state-of-the-art models!
+
 ## References
 [1] [Hypernews: simultaneous news recommendation and active-time prediction via a double-task deep neural network.](https://www.ijcai.org/Proceedings/2020/482)
 
