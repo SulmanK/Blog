@@ -1,5 +1,5 @@
 ---
-draft: true
+draft: false
 
 
 date: 2024-04-28
@@ -167,7 +167,7 @@ $$ IDF(t) = \log\left(\frac{\text{Total number of documents}}{\text{Number of do
 
 $$ \text{TF-IDF}(t, d) = TF(t, d) \times IDF(t)$$
 
-Next, we'll need to use a similarity method to compare documents such as cosine similarity or FAISS.
+Next, we need to use a similarity method to compare documents, such as cosine similarity or FAISS.
 
 
 ##### Cosine Similarity
@@ -256,6 +256,8 @@ article_id_to_idx = {article_id: idx for idx, article_id in enumerate(article_id
 
 # Initialize predicted impressions list
 predicted_impressions = []
+# Store similarity scores for auc_score
+similarity_scores = []
 
 # Process each row of the user behavior data
 for i in df_bev.index[0:1000]:  
@@ -295,22 +297,30 @@ for i in df_bev.index[0:1000]:
     if highest_similarity <= 0.5:
         impression = np.random.choice(user_article_history)
         predicted_impressions.append(impression)
+        # Assign low similarity value for random choice
+        similarity_scores.append(0)  
         print(f"User {df_bev.loc[i, 'user_id']}: Low similarity, random impression chosen")
     else:
         predicted_impressions.append(best_imp)
+        similarity_scores.append(highest_similarity)
         print(f"User {df_bev.loc[i, 'user_id']}: Best impression {best_imp} with similarity {highest_similarity}")
 
-# Calculate the accuracy
+# Prepare binary labels for AUC
 actual_impressions = [x[0] for x in df_bev['article_ids_clicked'].values][0:1000]
+binary_labels = [1 if pred == actual else 0 for pred, actual in zip(predicted_impressions, actual_impressions)]
+auc_score = sklearn.metrics.roc_auc_score(binary_labels, similarity_scores)
 
+# Calculate accuracy
 y_pred = predicted_impressions
 y_true = actual_impressions
 acc = sklearn.metrics.accuracy_score(y_true, y_pred)
+
 print("-------------------------")
 print("Accuracy:", acc)
+print("AUC Score:", auc_score)
 
 ```
-The model's accuracy is 0.12, which is worse than a random model that predicts impressions with a 1/6 (≈0.1667) chance.
+The model's accuracy is 0.12, lower than a random model's 1/6 (≈0.1667) chance. However, its ROC-AUC score is 0.59, indicating a decent starting point as it outperforms random guessing.
 
 ##### FAISS
 FAISS (Facebook AI Similarity Search) is a library developed by Facebook AI that provides efficient tools for similarity search and clustering of dense vectors. The central task in FAISS is finding vectors in a database that are closest to a query vector, typically using a similarity measure like cosine similarity or Euclidean distance. Setting an appropriate threshold value is crucial for determining the significance of similarity.
@@ -395,24 +405,11 @@ article_id_to_idx = {article_id: idx for idx, article_id in enumerate(article_id
 
 # Initialize predicted impressions list
 predicted_impressions = []
-
-# Convert sparse matrix to dense matrix (only after dimensionality reduction)
-# Apply SVD for dimensionality reduction
-svd = TruncatedSVD(n_components=100) 
-tfidf_matrix_reduced = svd.fit_transform(tfidf_matrix_all)
-
-# Initialize FAISS index
-dim = tfidf_matrix_reduced.shape[1]
-index = faiss.IndexFlatL2(dim)
-
-# Add vectors to the FAISS index
-index.add(np.array(tfidf_matrix_reduced, dtype=np.float32))
-
-# Initialize predicted impressions list
-predicted_impressions = []
+# Store similarity scores for auc_score
+similarity_scores = []
 
 # Process each user behavior
-for i in df_bev.index[:1000]:
+for i in df_bev.index[0:1000]:
     user_article_history = df_bev.loc[i, 'article_ids_inview']
     indices = [article_id_to_idx[x] for x in user_article_history if x in article_id_to_idx]
 
@@ -424,34 +421,46 @@ for i in df_bev.index[:1000]:
     user_profile_vector = tfidf_matrix_reduced[indices].mean(axis=0).reshape(1, -1).astype(np.float32)
 
     # Use FAISS to find nearest neighbors (articles) based on user profile vector
-    D, I = index.search(user_profile_vector, k=5)  # Search for top 5 nearest neighbors (articles)
+    # Search for top 5 nearest neighbors (articles)
+    D, I = index.search(user_profile_vector, k=10)  
 
     # Get the most similar article based on the nearest neighbor
-    highest_similarity = D[0][0]  # The distance (smallest distance = most similar)
+    # The distance (smallest distance = most similar)
+    highest_similarity = D[0][0]
     print(highest_similarity)
-    best_imp_idx = I[0][0]  # The index of the closest article
+    # The index of the closest article
+    best_imp_idx = I[0][0] 
 
     # Handle low similarity by selecting a random article
     if highest_similarity < 0.00005:
         impression = np.random.choice(user_article_history)
         predicted_impressions.append(impression)
+        # Assign low similarity value for random choice
+        similarity_scores.append(0)  
         print(f"User {df_bev.loc[i, 'user_id']}: Low similarity, random impression chosen")
     else:
         best_imp = article_ids[best_imp_idx]  # Retrieve the article ID of the best match
         predicted_impressions.append(best_imp)
+        similarity_scores.append(highest_similarity)  # Store the similarity score
         print(f"User {df_bev.loc[i, 'user_id']}: Best impression {best_imp} with similarity {highest_similarity}")
 
 
-# Calculate the accuracy
+# Prepare binary labels for AUC
 actual_impressions = [x[0] for x in df_bev['article_ids_clicked'].values][0:1000]
+binary_labels = [1 if pred == actual else 0 for pred, actual in zip(predicted_impressions, actual_impressions)]
+auc_score = sklearn.metrics.roc_auc_score(binary_labels, similarity_scores)
+
+# Calculate accuracy
 y_pred = predicted_impressions
 y_true = actual_impressions
 acc = sklearn.metrics.accuracy_score(y_true, y_pred)
+
 print("-------------------------")
 print("Accuracy:", acc)
+print("AUC Score:", auc_score)
 
 ```
-The model's accuracy is 0.085, which is surprisingly worse than a random model with a 1/6 (≈0.1667) chance of predicting correctly.
+The model's accuracy is 0.075, below a random model's 1/6 (≈0.1667) chance, and its ROC-AUC score of 0.330 indicates it performs worse than random guessing.
 
 ### Hybrid-Approach
 Content-based approaches performed poorly due to the use of TF-IDF vectorization, a bag-of-words model that fails to capture relationships between words. Now, we'll use more state-of-the-art models!
