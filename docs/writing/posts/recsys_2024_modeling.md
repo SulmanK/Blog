@@ -464,7 +464,7 @@ print("AUC Score:", auc_score)
 
 
 ```
-The model's accuracy is 0.075, below a random model's 1/6 (≈0.1667) chance, and its ROC-AUC score of 0.330 indicates it performs worse than random guessing.
+The model's accuracy is 0.096, below a random model's 1/6 (≈0.1667) chance, and its ROC-AUC score of 0.3324 indicates it performs worse than random guessing.
 
 ### Hybrid-Approach
 Content-based approaches performed poorly due to the use of TF-IDF vectorization, a bag-of-words model that fails to capture relationships between words. Now, we'll use more state-of-the-art models!
