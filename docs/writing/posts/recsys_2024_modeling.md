@@ -205,9 +205,6 @@ df = df_bev.join(df_art.set_index("article_id"), on="article_id")
 df = df.join(df_his.set_index("user_id"), on="user_id")
 
 # Drop all other dataframes from me
-df_bev = []
-df_his = []
-df_art = []
 df.dropna(subset=['article_id'], inplace=True)
 
 # Change article IDs into int
@@ -323,15 +320,17 @@ print("AUC Score:", auc_score)
 The model's accuracy is 0.12, lower than a random model's 1/6 (≈0.1667) chance. However, its ROC-AUC score is 0.59, indicating a decent starting point as it outperforms random guessing.
 
 ##### FAISS
-FAISS (Facebook AI Similarity Search) is a library developed by Facebook AI that provides efficient tools for similarity search and clustering of dense vectors. The central task in FAISS is finding vectors in a database that are closest to a query vector, typically using a similarity measure like cosine similarity or Euclidean distance. Setting an appropriate threshold value is crucial for determining the significance of similarity.
+FAISS (Facebook AI Similarity Search) is a library developed by Facebook AI that provides efficient tools for similarity search and clustering of dense vectors. The central task in FAISS is finding vectors in a database that are closest to a query vector, typically using a similarity measure like cosine similarity or Euclidean distance. Setting an appropriate threshold value is crucial for determining the significance of similarity. In some cases, a dimensional reduction techniques such as SVD must be employed to lower the number of memory required for computation.
 
 !!! success "Implmentation"
 ```python
 # Packages
+from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 import pandas as pd
 import sklearn
+import faiss  
 
 # Load in training data
 # Articles
@@ -354,9 +353,6 @@ df = df_bev.join(df_art.set_index("article_id"), on="article_id")
 df = df.join(df_his.set_index("user_id"), on="user_id")
 
 # Drop all other dataframes from me
-df_bev = []
-df_his = []
-df_art = []
 df.dropna(subset=['article_id'], inplace=True)
 
 # Change article IDs into int
@@ -400,6 +396,16 @@ vectorizer = TfidfVectorizer(norm='l1')
 tfidf_matrix_all = vectorizer.fit_transform(article_content_dict.values())
 article_ids = list(article_content_dict.keys())
 
+# Dimensionality reduction for the TF-IDF matrix
+# Number of components to keep
+n_components = 100  
+svd = TruncatedSVD(n_components=n_components)
+tfidf_matrix_reduced = svd.fit_transform(tfidf_matrix_all)
+
+# Create a FAISS index for the reduced TF-IDF matrix
+index = faiss.IndexFlatL2(tfidf_matrix_reduced.shape[1]) 
+index.add(tfidf_matrix_reduced)  
+
 # Map article IDs to indices in the TF-IDF matrix
 article_id_to_idx = {article_id: idx for idx, article_id in enumerate(article_ids)}
 
@@ -421,29 +427,26 @@ for i in df_bev.index[0:1000]:
     user_profile_vector = tfidf_matrix_reduced[indices].mean(axis=0).reshape(1, -1).astype(np.float32)
 
     # Use FAISS to find nearest neighbors (articles) based on user profile vector
-    # Search for top 5 nearest neighbors (articles)
-    D, I = index.search(user_profile_vector, k=10)  
+    # Search for top 10 nearest neighbors (articles)
+    D, I = index.search(user_profile_vector, k=10)
 
     # Get the most similar article based on the nearest neighbor
-    # The distance (smallest distance = most similar)
     highest_similarity = D[0][0]
-    print(highest_similarity)
-    # The index of the closest article
-    best_imp_idx = I[0][0] 
+    best_imp_idx = I[0][0]
 
     # Handle low similarity by selecting a random article
     if highest_similarity < 0.00005:
         impression = np.random.choice(user_article_history)
         predicted_impressions.append(impression)
-        # Assign low similarity value for random choice
-        similarity_scores.append(0)  
+        similarity_scores.append(0)
         print(f"User {df_bev.loc[i, 'user_id']}: Low similarity, random impression chosen")
     else:
-        best_imp = article_ids[best_imp_idx]  # Retrieve the article ID of the best match
+        # Retrieve the article ID of the best match
+        best_imp = article_ids[best_imp_idx]
         predicted_impressions.append(best_imp)
-        similarity_scores.append(highest_similarity)  # Store the similarity score
+        # Store the similarity score
+        similarity_scores.append(highest_similarity)  
         print(f"User {df_bev.loc[i, 'user_id']}: Best impression {best_imp} with similarity {highest_similarity}")
-
 
 # Prepare binary labels for AUC
 actual_impressions = [x[0] for x in df_bev['article_ids_clicked'].values][0:1000]
@@ -458,6 +461,7 @@ acc = sklearn.metrics.accuracy_score(y_true, y_pred)
 print("-------------------------")
 print("Accuracy:", acc)
 print("AUC Score:", auc_score)
+
 
 ```
 The model's accuracy is 0.075, below a random model's 1/6 (≈0.1667) chance, and its ROC-AUC score of 0.330 indicates it performs worse than random guessing.
