@@ -24,7 +24,7 @@ authors:
     - Model Development
 
     
-    For more in-depth analysis, please check out the [notebook](https://github.com/SulmanK/2024-Recsys-Challenge/blob/main/2024_Recsys_Challenge_EDA.ipynb)!
+    For more in-depth analysis, please check out the [notebook](https://github.com/SulmanK/2024-Recsys-Challenge/blob/main/notebooks/2024_Recsys_Challenge_Model.ipynb)!
 
     <!-- more -->
 
@@ -468,6 +468,14 @@ The model's accuracy is 0.096, below a random model's 1/6 (≈0.1667) chance, an
 
 ### Hybrid-Approach
 Content-based approaches performed poorly due to the use of TF-IDF vectorization, a bag-of-words model that fails to capture relationships between words. Now, we'll use more state-of-the-art models!
+
+We'll be examining the Deep Interest Network (DIN) model. 
+
+#### Deep Interest Network
+The Deep Interest Network (DIN) is an advanced recommendation model designed to address the challenge of capturing users' diverse interests in click-through rate prediction tasks. 
+It improves upon traditional Embedding & MLP methods by introducing a local activation unit that adaptively learns user interest representations based on historical behaviors and the specific ad being considered
+
+![](./img//din.jpg)
 
 ## References
 [1] [Hypernews: simultaneous news recommendation and active-time prediction via a double-task deep neural network.](https://www.ijcai.org/Proceedings/2020/482)

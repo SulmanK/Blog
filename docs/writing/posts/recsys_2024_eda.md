@@ -31,7 +31,7 @@ authors:
         - Devices
         - Age
     
-    For more in-depth analysis, please check out the [notebook](https://github.com/SulmanK/2024-Recsys-Challenge/blob/main/2024_Recsys_Challenge_EDA.ipynb)!
+    For more in-depth analysis, please check out the [notebook](https://github.com/SulmanK/2024-Recsys-Challenge/blob/main/notebooks/2024_Recsys_Challenge_EDA.ipynb)!
 
     <!-- more -->
 
