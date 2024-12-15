@@ -1,9 +1,9 @@
 ---
-draft: true
+draft: false
 
 
 date: 2024-12-15
-slug: recsys-challenge-2024-model-development
+slug: recsys-challenge-2024-model-selection
 
 categories:
   - RecSys Challenge 2024
@@ -17,7 +17,7 @@ categories:
 authors:
   - sulmank
 ---
-# RecSys Challenge 2024: Model Development
+# RecSys Challenge 2024: Model Selection
 
 ## Introduction
 !!! abstract "Purpose"
