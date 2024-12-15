@@ -2,7 +2,7 @@
 draft: true
 
 
-date: 2024-04-28
+date: 2024-12-15
 slug: recsys-challenge-2024-model-development
 
 categories:
