@@ -4,5 +4,6 @@ Hello, I'm Sulman Khan, a data scientist with experience in end-to-end machine l
 ## [Writing](./writing/index.md)
 - [Recommendation Systems: Overview](./writing/posts/recsys_overview.md)
 - [RecSys Challenge 2024: Exploratory Data Analysis](./writing/posts/recsys_2024_eda.md)
+- [RecSys Challenge 2024: Model Selection](./writing/posts/recsys_2024_modeling.md)
 
 
