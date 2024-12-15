@@ -469,6 +469,9 @@ The model's accuracy is 0.096, below a random model's 1/6 (≈0.1667) chance, an
 ### Hybrid-Approach
 Content-based approaches performed poorly due to the use of TF-IDF vectorization, a bag-of-words model that fails to capture relationships between words. Now, we'll use more state-of-the-art models!
 
+!!! question "What are some hybrid-based CTR approaches that can be applied to news recommendation?"
+
+
 We'll be examining the Deep Interest Network (DIN) model. 
 
 #### Deep Interest Network
