@@ -401,34 +401,34 @@ For side information with sequential patterns, RNNs are ideal for representation
 Bansal et al. proposed a hybrid model employing GRUs to encode text sequences, addressing both warm-start and cold-start challenges in recommendation systems. They introduced a multi-task regularizer to counter overfitting and alleviate data sparsity. The primary task focuses on rating prediction, while an auxiliary task predicts item metadata such as tags and genres.[[16]](https://arxiv.org/pdf/1609.02116)
 
 ## References
-[1] [Recent Developments in Recommender Systems: A Survey](https://arxiv.org/abs/2306.12680)
+1. [Recent Developments in Recommender Systems: A Survey](https://arxiv.org/abs/2306.12680)
 
-[2] [The Netflix Recommender System: Algorithms, Business Value, and Innovation](https://dl.acm.org/doi/pdf/10.1145/2843948)
+2. [The Netflix Recommender System: Algorithms, Business Value, and Innovation](https://dl.acm.org/doi/pdf/10.1145/2843948)
 
-[3] [The Youtube Video Recommendation System. In Recsys](https://dl.acm.org/doi/10.1145/1864708.1864770)
+3. [The Youtube Video Recommendation System. In Recsys](https://dl.acm.org/doi/10.1145/1864708.1864770)
 
-[4] [Transform cold-start users into warm via fused behaviors in large-scale recommendation](https://dl.acm.org/doi/proceedings/10.1145/3477495)
+4. [Transform cold-start users into warm via fused behaviors in large-scale recommendation](https://dl.acm.org/doi/proceedings/10.1145/3477495)
 
-[5] ["Causer: Causal session-based recommendations for handling popularity bias"](https://dl.acm.org/doi/10.1145/3459637.3482071)
+5. ["Causer: Causal session-based recommendations for handling popularity bias"](https://dl.acm.org/doi/10.1145/3459637.3482071)
 
-[6] [The Idiosyncratic Effects of Adversarial Training on Bias in Personalized Recommendation Learning](https://dl.acm.org/doi/10.1145/3460231.3478858)
+6. [The Idiosyncratic Effects of Adversarial Training on Bias in Personalized Recommendation Learning](https://dl.acm.org/doi/10.1145/3460231.3478858)
 
-[7] [FairGAN: GANs-based Fairness-aware Learning for Recommendations with Implicit Feedback](https://dl.acm.org/doi/10.1145/3485447.3511958)
+7. [FairGAN: GANs-based Fairness-aware Learning for Recommendations with Implicit Feedback](https://dl.acm.org/doi/10.1145/3485447.3511958)
 
-[8] [Together is better: Hybrid recommendations combining graph embeddings and contextualized word representation](https://dl.acm.org/doi/10.1145/3460231.3474272)
+8. [Together is better: Hybrid recommendations combining graph embeddings and contextualized word representation](https://dl.acm.org/doi/10.1145/3460231.3474272)
 
-[9] [Two tower model for retrieval](https://recsysml.substack.com/p/two-tower-models-for-retrieval-of)
+9. [Two tower model for retrieval](https://recsysml.substack.com/p/two-tower-models-for-retrieval-of)
 
-[10] [Interpretable convolutional neural networks with dual local and global attention for review rating prediction](https://dl.acm.org/doi/10.1145/3109859.3109890)
+10. [Interpretable convolutional neural networks with dual local and global attention for review rating prediction](https://dl.acm.org/doi/10.1145/3109859.3109890)
 
-[11] [Camo: A collaborative ranking method for content based recommendation](https://ojs.aaai.org/index.php/AAAI/article/view/4457)
+11. [Camo: A collaborative ranking method for content based recommendation](https://ojs.aaai.org/index.php/AAAI/article/view/4457)
 
-[12] [Asymmetrical Context-aware Modulation for Collaborative Filtering Recommendation](https://dl.acm.org/doi/10.1145/3511808.3557240)
+12. [Asymmetrical Context-aware Modulation for Collaborative Filtering Recommendation](https://dl.acm.org/doi/10.1145/3511808.3557240)
 
-[13] [Joint Deep Modeling of Users and Items Using Reviews for Recommendation](https://dl.acm.org/doi/10.1145/3018661.3018665)
+13. [Joint Deep Modeling of Users and Items Using Reviews for Recommendation](https://dl.acm.org/doi/10.1145/3018661.3018665)
 
-[14] [Hypercomplex Graph Collaborative Filtering](https://dl.acm.org/doi/10.1145/3485447.3512065)
+14. [Hypercomplex Graph Collaborative Filtering](https://dl.acm.org/doi/10.1145/3485447.3512065)
 
-[15] [Recurrent Recommender Networks](https://dl.acm.org/doi/10.1145/3018661.3018689)
+15. [Recurrent Recommender Networks](https://dl.acm.org/doi/10.1145/3018661.3018689)
 
-[16] [Ask the gru: Multi-task learning for deep text recommendations](https://arxiv.org/pdf/1609.02116)
+16. [Ask the gru: Multi-task learning for deep text recommendations](https://arxiv.org/pdf/1609.02116)

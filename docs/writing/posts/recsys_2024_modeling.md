@@ -11,9 +11,6 @@ categories:
   - Model Selection
   - Data Science
   - Deep Learning Recommendation Models
-  - Deep Interest Network
-  - Deep Cross Network
-  - Deep Neural Networks
 authors:
   - sulmank
 ---
