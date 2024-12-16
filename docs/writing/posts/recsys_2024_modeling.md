@@ -484,7 +484,7 @@ The Deep Interest Network (DIN) enhances CTR prediction by adaptively capturing 
 
 ![](./img//din_architecture.png)
 
-The local activation unit in DIN is a key component that allows the model to capture the diversity of user interests by dynamically generating a user representation vector based on the relevance of their past behaviors to the specific ad being shown. Instead of a fixed representation, this unit emphasizes behaviors related to the ad being considered. For example, if a user has browsed both clothes and electronics, the local activation unit will give more weight to clothes-related behaviors when predicting their likelihood to click on a T-shirt ad. This weighted sum pooling approach, similar to attention mechanisms but without normalizing the weights, retains information about the intensity of the user's interest, allowing DIN to distinguish between strong and weak interest levels[[7]](https://arxiv.org/pdf/1706.06978)
+The local activation unit in DIN is a key component that allows the model to capture the diversity of user interests by dynamically generating a user representation vector based on the relevance of their past behaviors to the specific ad being shown. Instead of a fixed representation, this unit emphasizes behaviors related to the ad being considered. For example, if a user has browsed both clothes and electronics, the local activation unit will give more weight to clothes-related behaviors when predicting their likelihood to click on a T-shirt ad. This weighted sum pooling approach, similar to attention mechanisms but without normalizing the weights, retains information about the intensity of the user's interest, allowing DIN to distinguish between strong and weak interest levels. [[7]](https://arxiv.org/pdf/1706.06978)
 
 
 ##### Data Preparation
@@ -886,7 +886,7 @@ The main goal is to make predictions on the testing set.
     ```python submit.py --config config/DCN_ebnerd_large_x2_tuner_config_doubleq_01 --expid DCN_ebnerd_large_x2_001_1860e41e --gpu 1```
 
 ##### Results
-The results of our best-performing run, including detailed metrics, can be found [here](https://github.com/SulmanK/2024-Recsys-Challenge/blob/main/fuxcitr_dir/exp_results/DCN_ebnerd_large_x2_tuner_config_doubleq_02.csv). It outlines the specifications of our best performing model, in which we achieved an ROC-AUC score of 0.6857
+The results of our best-performing run, including detailed metrics, can be found [here](https://github.com/SulmanK/2024-Recsys-Challenge/blob/main/fuxcitr_dir/exp_results/DCN_ebnerd_large_x2_tuner_config_doubleq_02.csv). It outlines the specifications of our best performing model, in which we achieved an ROC-AUC score of 0.6857.
 
 ```csv
 20241214-205228	[command] python run_expid.py --config config/DCN_ebnerd_large_x2_tuner_config_doubleq_02 --expid DCN_ebnerd_large_x2_001_c76e9991 --gpu 0	[exp_id] DCN_ebnerd_large_x2_001_c76e9991	[dataset_id] ebnerd_large_x2_7ea969aa	[train] N.A.	[val] avgAUC: 0.685714 - MRR: 0.454175 - NDCG(k=5): 0.516215	[test] 
@@ -896,18 +896,18 @@ The results of our best-performing run, including detailed metrics, can be found
 
 
 ## References
-[1] [Hypernews: simultaneous news recommendation and active-time prediction via a double-task deep neural network.](https://www.ijcai.org/Proceedings/2020/482)
+1.  [Hypernews: simultaneous news recommendation and active-time prediction via a double-task deep neural network.](https://www.ijcai.org/Proceedings/2020/482)
 
-[2] [Research on news recommendation methods considering geographical location of news](https://www.jsjkx.com/EN/Y2018/V45/I11A/462)
+2.  [Research on news recommendation methods considering geographical location of news](https://www.jsjkx.com/EN/Y2018/V45/I11A/462)
 
-[3] [Saravanapriya M, Senthilkumar R, Saktheeswaran J (2022) Multi-label convolution neural network for personalized news recommendation based on social media mining.](https://www.semanticscholar.org/paper/Multi-label-Convolution-Neural-Network-for-News-on-Saravanapriya-Senthilkumar/a6004a33699ced82c61ff2b492f225bdc44444d8)
+3.  [Saravanapriya M, Senthilkumar R, Saktheeswaran J (2022) Multi-label convolution neural network for personalized news recommendation based on social media mining.](https://www.semanticscholar.org/paper/Multi-label-Convolution-Neural-Network-for-News-on-Saravanapriya-Senthilkumar/a6004a33699ced82c61ff2b492f225bdc44444d8)
 
-[4] [Contextual Hybrid Session-based News Recommendation with Recurrent Neural Networks](https://arxiv.org/pdf/1904.10367)
+4.  [Contextual Hybrid Session-based News Recommendation with Recurrent Neural Networks](https://arxiv.org/pdf/1904.10367)
 
-[5] [Personalized News Recommendation: Methods and Challenges](https://arxiv.org/abs/2106.08934)
+5. [Personalized News Recommendation: Methods and Challenges](https://arxiv.org/abs/2106.08934)
 
-[6] [BARS-CTR: Open Benchmarking for Click-Through Rate Prediction](https://arxiv.org/pdf/2009.05794)
+6. [BARS-CTR: Open Benchmarking for Click-Through Rate Prediction](https://arxiv.org/pdf/2009.05794)
 
-[7] [Deep Interest Network for Click-Through Rate Prediction](https://arxiv.org/pdf/1706.06978)
+7. [Deep Interest Network for Click-Through Rate Prediction](https://arxiv.org/pdf/1706.06978)
 
-[8] [Deep & Cross Network for Ad Click Predictions](https://arxiv.org/pdf/1708.05123)
+8. [Deep & Cross Network for Ad Click Predictions](https://arxiv.org/pdf/1708.05123)
