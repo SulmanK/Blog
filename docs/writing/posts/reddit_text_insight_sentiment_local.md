@@ -1,5 +1,5 @@
 ---
-draft: true
+draft: false
 
 
 date: 2025-01-08
@@ -1088,7 +1088,7 @@ The pipeline successfully processes a thousand of Reddit posts daily, generates 
 This project showcases the power of automation in extracting valuable insights from social media using AI and data engineering, while handling real-world challenges. The open-source code is on GitHub, and welcome community contributions.
 
 ## Resources and References
-- [Project GitHub Repository](INCLUDE GITHUB REPO, need to sanitize)
+- [Project GitHub Repository](https://github.com/SulmanK/reddit_ai_pulse_local_public)
 - [Web Application Demo](https://reddit-text-insight-and-sentiment-website-local.vercel.app/)
 
 
