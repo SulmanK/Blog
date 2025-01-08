@@ -9,6 +9,8 @@ categories:
   - AI
   - Data Engineering
   - LLMs
+  - end-to-end pipeline
+  - ML
 authors:
   - sulmank
 ---
