@@ -30,6 +30,9 @@ In this blog post, I document the process of building an AI-driven, on-premises 
 - **Applying AI for sentiment analysis and summarization**: Techniques to extract concise insights from unstructured Reddit discussions.    
 - **Utilizing Google’s Gemini AI for content analysis**: Insights into leveraging advanced AI models to categorize and interpret data.  
 
+Check out the [project GitHub repository](https://github.com/SulmanK/reddit_ai_pulse_local_public) for the full code and detailed documentation and [Web Application](https://reddit-text-insight-and-sentiment-website-local.vercel.app/)
+
+
 ## System Architecture: Modular and Scalable Design
 
 Our pipeline is designed with modularity and scalability in mind, comprising six main layers. Below is a high-level overview of how the components interact:
