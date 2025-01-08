@@ -3,7 +3,7 @@ draft: false
 
 
 date: 2025-01-08
-slug: Reddit AI Pulse (ON-PREM)
+slug: Reddit AI Pulse (On-Prem)
 
 categories:
   - AI
@@ -16,7 +16,7 @@ authors:
 ---
 
 
-# From Reddit to Insights: Building an AI-Powered Data Pipeline with Gemini (ON-PREM)
+# From Reddit to Insights: Building an AI-Powered Data Pipeline with Gemini (On-Prem)
 
 ## Introduction
 
