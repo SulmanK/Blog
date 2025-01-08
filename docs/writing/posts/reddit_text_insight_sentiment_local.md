@@ -1092,7 +1092,7 @@ This project showcases the power of automation in extracting valuable insights f
 
 ## Resources and References
 - [Project GitHub Repository](https://github.com/SulmanK/reddit_ai_pulse_local_public)
-- [Web Application Demo](https://reddit-text-insight-and-sentiment-website-local.vercel.app/)
+- [Web Application](https://reddit-text-insight-and-sentiment-website-local.vercel.app/)
 
 
 
