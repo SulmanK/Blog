@@ -20,17 +20,22 @@ authors:
 
 ## Introduction
 
-The field of artificial intelligence and machine learning evolves at an unprecedented pace, with new breakthroughs, trends, and discussions emerging daily. Platforms like Reddit host vibrant AI-focused communities that are rich with valuable insights. However, manually monitoring multiple subreddits to extract meaningful information is both time-consuming and inefficient.
+!!! abstract "Purpose"
+    In this blog post, I document the process of building an AI-driven, on-premises data pipeline to automate this task. Using Google’s Gemini AI, the pipeline collects, processes, and synthesizes discussions from AI-related subreddits into structured daily reports. The system is designed to filter out irrelevant or harmful content, ensuring the extracted insights are both meaningful and actionable.
 
-In this blog post, I document the process of building an AI-driven, on-premises data pipeline to automate this task. Using Google’s Gemini AI, the pipeline collects, processes, and synthesizes discussions from AI-related subreddits into structured daily reports. The system is designed to filter out irrelevant or harmful content, ensuring the extracted insights are both meaningful and actionable.
+    Check out the [project GitHub repository](https://github.com/SulmanK/reddit_ai_pulse_local_public) for the full code and detailed documentation and [Web Application](https://reddit-text-insight-and-sentiment-website-local.vercel.app/).
+
+    <!-- more -->
+
+!!! info "Problem Statement"
+    The field of artificial intelligence and machine learning evolves at an unprecedented pace, with new breakthroughs, trends, and discussions emerging daily. Platforms like Reddit host vibrant AI-focused communities that are rich with valuable insights. However, manually monitoring multiple subreddits to extract meaningful information is both time-consuming and inefficient.
+
 
 ### **What You’ll Learn**
 - **Designing a robust data pipeline orchestrated with Airflow**: How to automate and orchestrate complex data workflows.  
 - **Optimizing data flow with PostgreSQL and dbt**: Best practices for structuring and managing collected data efficiently.  
 - **Applying AI for sentiment analysis and summarization**: Techniques to extract concise insights from unstructured Reddit discussions.    
 - **Utilizing Google’s Gemini AI for content analysis**: Insights into leveraging advanced AI models to categorize and interpret data.  
-
-Check out the [project GitHub repository](https://github.com/SulmanK/reddit_ai_pulse_local_public) for the full code and detailed documentation and [Web Application](https://reddit-text-insight-and-sentiment-website-local.vercel.app/).
 
 
 ## System Architecture: Modular and Scalable Design
