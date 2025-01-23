@@ -1,5 +1,5 @@
 ---
-draft: true
+draft: false
 
 
 date: 2025-01-23
@@ -25,7 +25,7 @@ authors:
 !!! abstract "Purpose"
     In this blog post, I document the process of building an AI-driven, cloud data pipeline to automate this task. Using Google’s Gemini AI, the pipeline collects, processes, and synthesizes discussions from AI-related subreddits into structured daily reports. The system is designed to filter out irrelevant or harmful content, ensuring the extracted insights are both meaningful and actionable.
 
-    Check out the [project GitHub repository](https://github.com/SulmanK/reddit_ai_pulse_cloud_public) for the full code and detailed documentation and [Web Application](https://reddit-text-insight-and-sentiment-website-cloud.vercel.app/).
+    Check out the [project GitHub repository](https://github.com/SulmanK/reddit_ai_pulse_cloud_public) for the full code and detailed documentation and [Web Application](https://reddit-text-insight-and-sentiment-website-local.vercel.app/).
 
     <!-- more -->
 
@@ -1478,18 +1478,18 @@ DBT tests are run to ensure the data is valid.
     - We monitor our pipeline with dedicated metrics tasks, using a StatsD exporter to send real-time data to Prometheus, and MLflow tracking for model performance.
 
 6. **Shutdown VM using Cloud Function**
-    We use a Cloud Function to shutdown the VM after the pipeline is complete.
-   ```python    
-    shutdown_vm = PythonOperator(
-        task_id='shutdown_vm',
-        python_callable=trigger_vm_shutdown,
-        provide_context=True,
-        trigger_rule='all_done',  # Run even if upstream tasks fail
-        retries=0,  # Don't retry on failure since VM will be shutting down
-        dag=dag,
-        email_on_failure=False,
-    )
-    ```
+    ```python    
+        shutdown_vm = PythonOperator(
+            task_id='shutdown_vm',
+            python_callable=trigger_vm_shutdown,
+            provide_context=True,
+            trigger_rule='all_done',  # Run even if upstream tasks fail
+            retries=0,  # Don't retry on failure since VM will be shutting down
+            dag=dag,
+            email_on_failure=False,
+        )
+    ```  
+We use a Cloud Function to shutdown the VM after the pipeline is complete.
 
 ##### 3. Task Dependencies
 The pipeline follows a clear dependency chain:
