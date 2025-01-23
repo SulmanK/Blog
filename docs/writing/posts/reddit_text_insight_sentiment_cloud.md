@@ -171,30 +171,36 @@ def fetch_and_save_posts(reddit, subreddit_name, db_utils, conn):
         current_max_utc = max(current_max_utc, submission.created_utc)
 ```
 
-The raw data is stored in PostgreSQL with the following schema:
+The raw data is stored in GCS as a JSON file.
 
-```sql
--- Raw posts table schema
-CREATE TABLE raw_data.raw_posts (
-    id SERIAL PRIMARY KEY,
-    subreddit VARCHAR(50) NOT NULL,
-    post_id VARCHAR(20) UNIQUE NOT NULL,
-    title TEXT NOT NULL,
-    author VARCHAR(100) NOT NULL,
-    url TEXT,
-    score INTEGER,
-    created_utc TIMESTAMP WITH TIME ZONE,
-    comments JSONB,  -- Stores comment data as JSON
-    processed BOOLEAN DEFAULT FALSE,
-    inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+```python
+def save_to_gcs(storage_client: storage.Client, bucket_name: str, 
+                subreddit_name: str, posts: List[Dict]) -> None:
+    """Saves posts data to Google Cloud Storage."""
+    try:
+        # Get bucket
+        bucket = storage_client.bucket(bucket_name)
+        
+        # Generate blob name with current timestamp
+        batch_timestamp = datetime.utcnow()
+        blob_name = get_gcs_blob_name(subreddit_name, batch_timestamp)
+        blob = bucket.blob(blob_name)
+        
+        # Convert to newline-delimited JSON
+        ndjson_data = '\n'.join(json.dumps(post) for post in posts)
+        blob.upload_from_string(ndjson_data)
+        
+        logger.info(f"Saved {len(posts)} posts to GCS: {blob_name}")
+    except Exception as e:
+        logger.error(f"Error saving to GCS: {e}")
+        raise
 ```
 
 Our system is designed for efficient and reliable data processing. We use incremental data collection, fetching only new data based on timestamps. To manage the volume of Reddit data, we focus on the top 10 comments per post, allowing us to process approximately 1,000 comments daily in about 50 minutes. This can be easily scaled by adding more compute resources. We store comments in JSONB format, which provides flexibility for handling semi-structured data.
 
 We've implemented robust error handling with retry mechanisms and transaction management to ensure data consistency. Batch processing is used to improve scalability and efficiency when dealing with large datasets. While stream processing could further enhance scalability, we opted for batch processing for this use case.
 
-JSONB storage was chosen for its ability to handle semi-structured data like Reddit comments, which often vary in format and content. By storing comments as JSONB, the system accommodates diverse data structures without rigid schemas, while still allowing efficient querying and indexing for analytics.
+JSON was chosen for its ability to handle semi-structured data like Reddit comments, which often vary in format and content. By storing comments as JSON, the system accommodates diverse data structures without rigid schemas, while still allowing efficient querying and indexing for analytics.
 
 
 ##### 2. Data Preprocessing with PySpark
@@ -271,64 +277,152 @@ def preprocess_comments(df):
         "body", F.regexp_replace("body", r'\s+', ' ')
     ).dropDuplicates(["comment_id"])
 ```
-Our comment preprocessing involves defining a schema for the JSONB data, parsing and exploding the comments, selecting and aliasing relevant fields (including converting the timestamp), filtering out invalid comments, cleaning and normalizing the text, and removing duplicates.
+Our comment preprocessing involves defining a schema for the JSON data, parsing and exploding the comments, selecting and aliasing relevant fields (including converting the timestamp), filtering out invalid comments, cleaning and normalizing the text, and removing duplicates.
 
 ###### Processed Data Schema
 The cleaned data is stored in separate tables for posts and comments:
 
-```sql
--- Processed posts schema
-CREATE TABLE processed_data.posts (
-    id SERIAL PRIMARY KEY,
-    subreddit VARCHAR(50) NOT NULL,
-    post_id VARCHAR(20) UNIQUE NOT NULL,
-    title TEXT NOT NULL,
-    author VARCHAR(100) NOT NULL,
-    url TEXT,
-    score INTEGER,
-    created_utc TIMESTAMP WITH TIME ZONE,
-    processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+```terraform
+# Dynamic processed posts tables for each subreddit
+resource "google_bigquery_table" "processed_posts_tables" {
+  for_each = toset(var.subreddits)
+  
+  dataset_id = google_bigquery_dataset.processed_data.dataset_id
+  table_id   = "posts_${lower(each.value)}"
+  project    = var.project
 
--- Processed comments schema
-CREATE TABLE processed_data.comments (
-    id SERIAL PRIMARY KEY,
-    post_id VARCHAR(20) REFERENCES processed_data.posts(post_id),
-    comment_id VARCHAR(20) UNIQUE NOT NULL,
-    body TEXT NOT NULL,
-    author VARCHAR(100) NOT NULL,
-    created_utc TIMESTAMP WITH TIME ZONE,
-    processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-);
+  deletion_protection = false
+
+  schema = jsonencode([
+    {
+      name = "post_id",
+      type = "STRING",
+      mode = "REQUIRED"
+    },
+    {
+      name = "subreddit",
+      type = "STRING",
+      mode = "REQUIRED"
+    },
+    {
+      name = "title",
+      type = "STRING",
+      mode = "NULLABLE"
+    },
+    {
+      name = "author",
+      type = "STRING",
+      mode = "NULLABLE"
+    },
+    {
+      name = "url",
+      type = "STRING",
+      mode = "NULLABLE"
+    },
+    {
+      name = "score",
+      type = "INTEGER",
+      mode = "NULLABLE"
+    },
+    {
+      name = "created_utc",
+      type = "TIMESTAMP",
+      mode = "NULLABLE"
+    },
+    {
+      name = "ingestion_timestamp",
+      type = "TIMESTAMP",
+      mode = "NULLABLE"
+    }
+  ])
+}
+
+# Dynamic processed comments tables for each subreddit
+resource "google_bigquery_table" "processed_comments_tables" {
+  for_each = toset(var.subreddits)
+  
+  dataset_id = google_bigquery_dataset.processed_data.dataset_id
+  table_id   = "comments_${lower(each.value)}"
+  project    = var.project
+
+  deletion_protection = false
+
+  schema = jsonencode([
+    {
+      name = "post_id",
+      type = "STRING",
+      mode = "REQUIRED"
+    },
+    {
+      name = "comment_id",
+      type = "STRING",
+      mode = "REQUIRED"
+    },
+    {
+      name = "author",
+      type = "STRING",
+      mode = "NULLABLE"
+    },
+    {
+      name = "body",
+      type = "STRING",
+      mode = "NULLABLE"
+    },
+    {
+      name = "created_utc",
+      type = "TIMESTAMP",
+      mode = "NULLABLE"
+    }
+  ])
+}
+
+
+
 ```
 
 ###### Daily Summary Processing
 After preprocessing, we generate daily summaries of the Reddit data using PySpark. The following code snippet demonstrates how we load, filter, and join posts and comments to create these summaries:
 
 ```python
-def generate_daily_summaries(spark):
-    """Generates daily summaries of the processed data using PySpark."""
+def generate_daily_summaries(spark: SparkSession, project_id: str, dataset_id: str, subreddits: list, bucket_name: str):
+    """
+    Generates daily summaries of the processed data using PySpark.
+    Implements incremental loading by only processing data since the last processed timestamp.
+    """
     current_timestamp = datetime.now()
-    last_processed = get_last_processed_timestamp(spark)
+    last_processed = get_last_processed_timestamp(spark, project_id, dataset_id)
     total_summaries_added = 0
     
-    for subreddit in SUBREDDITS:
-        # Load posts and comments tables
-        posts_df = spark.read.format("jdbc") \
-            .option("url", jdbc_url) \
-            .option("dbtable", f"processed_data.posts_{subreddit.lower()}") \
+    if last_processed:
+        logger.info(f"Processing summaries from {last_processed} to {current_timestamp}")
+    else:
+        logger.info("No previous summaries found. Processing all available data.")
+
+    for subreddit in subreddits:
+        logger.info(f"Processing daily summary for subreddit: {subreddit}")
+
+        # Load posts and comments tables from BigQuery
+        posts_df = spark.read.format('bigquery') \
+            .option('table', f"{project_id}.{dataset_id}.posts_{subreddit.lower()}") \
             .load()
 
-        comments_df = spark.read.format("jdbc") \
-            .option("url", jdbc_url) \
-            .option("dbtable", f"processed_data.comments_{subreddit.lower()}") \
+        posts_count = posts_df.count()
+        logger.info(f"Found {posts_count} posts for {subreddit}")
+
+        comments_df = spark.read.format('bigquery') \
+            .option('table', f"{project_id}.{dataset_id}.comments_{subreddit.lower()}") \
             .load()
 
-        # Filter for new data since last processing
+        comments_count = comments_df.count()
+        logger.info(f"Found {comments_count} comments for {subreddit}")
+
+        # Filter posts and comments based on created_utc timestamp
         if last_processed:
             daily_posts_df = posts_df.filter(
                 (F.col("created_utc") > last_processed) &
                 (F.col("created_utc") <= current_timestamp)
+            )
+
             daily_comments_df = comments_df.filter(
                 (F.col("created_utc") > last_processed) &
                 (F.col("created_utc") <= current_timestamp)
@@ -337,12 +431,23 @@ def generate_daily_summaries(spark):
             daily_posts_df = posts_df.filter(F.col("created_utc") <= current_timestamp)
             daily_comments_df = comments_df.filter(F.col("created_utc") <= current_timestamp)
 
-        # Join posts and comments
-        daily_summary_df = daily_posts_df.alias("posts").join(
+        filtered_posts_count = daily_posts_df.count()
+        logger.info(f"Filtered to {filtered_posts_count} posts for processing")
+
+        if filtered_posts_count == 0:
+            logger.info(f"No new posts to summarize for {subreddit}")
+            continue
+
+        # Join posts and comments on post_id
+        joined_df = daily_posts_df.alias("posts").join(
             daily_comments_df.alias("comments"), 
             "post_id", 
             "right"
-        ).select(
+        )
+        
+        # Prepare the daily summary
+        daily_summary_df = joined_df.select(
+            F.monotonically_increasing_id().alias("id"),
             F.col("subreddit"),
             F.col("posts.post_id").alias("post_id"),
             F.col("posts.score").alias("post_score"),
@@ -350,37 +455,119 @@ def generate_daily_summaries(spark):
             F.col("comments.comment_id").alias("comment_id"),
             F.to_date(F.col("comments.created_utc")).alias("summary_date"),
             F.current_timestamp().alias("processed_date"),
+            F.lit(True).alias("needs_processing"),
             F.col("posts.title").alias("post_content"),
             F.col("comments.body").alias("comment_body")
         )
 
-        # Deduplication and quality filtering
+        # Filter out rows where required fields are null
         daily_summary_df = daily_summary_df.filter(
             (F.col("comment_body").isNotNull()) & 
             (F.col("comment_id").isNotNull()) &
             (F.col("post_id").isNotNull())
         )
+
+        filtered_summaries_count = daily_summary_df.count()
+        logger.info(f"Generated {filtered_summaries_count} summaries before deduplication")
+
+        # Deduplication Logic
+        existing_summary_df = spark.read.format('bigquery') \
+            .option('table', f"{project_id}.{dataset_id}.daily_summary_data") \
+            .load()
+
+        # Perform a left anti-join to get only new records
+        new_daily_summary_df = daily_summary_df.join(
+            existing_summary_df,
+            ["post_id", "comment_id"],  # Using composite key for deduplication
+            "left_anti"
+        )
+
+        new_summaries_count = new_daily_summary_df.count()
+        
+        if new_summaries_count > 0:
+            # Write the new daily summaries to BigQuery
+            new_daily_summary_df.write.format('bigquery') \
+                .option('table', f"{project_id}.{dataset_id}.daily_summary_data") \
+                .option('temporaryGcsBucket', bucket_name) \
+                .mode('append') \
+                .save()
+            
+            total_summaries_added += new_summaries_count
+            logger.info(f"Successfully added {new_summaries_count} new summaries for {subreddit}")
+        else:
+            logger.info(f"No new unique summaries to add for {subreddit}")
 ```
 To create daily summaries, we load new posts and comments for each subreddit. We then join these datasets on post_id, select the necessary fields, and filter out any rows with null values. This function combines post and comment data, preparing it for further analysis.
 
 
 The daily summary data is stored with the following schema:
 
-```sql
-CREATE TABLE processed_data.daily_summary_data (
-    id SERIAL,
-    subreddit TEXT,
-    post_id TEXT,
-    post_score INTEGER,
-    post_url TEXT,
-    comment_id TEXT,
-    summary_date DATE,
-    processed_date TIMESTAMPTZ,
-    needs_processing BOOLEAN DEFAULT TRUE,
-    post_content TEXT,
-    comment_body TEXT,
-    PRIMARY KEY (post_id, comment_id)
-);
+```terraform
+resource "google_bigquery_table" "daily_summary" {
+  dataset_id = google_bigquery_dataset.processed_data.dataset_id
+  table_id   = "daily_summary_data"
+  project    = var.project
+
+  deletion_protection = false
+
+  schema = jsonencode([
+    {
+      name = "id",
+      type = "INTEGER",
+      mode = "REQUIRED"
+    },
+    {
+      name = "subreddit",
+      type = "STRING",
+      mode = "REQUIRED"
+    },
+    {
+      name = "post_id",
+      type = "STRING",
+      mode = "REQUIRED"
+    },
+    {
+      name = "post_score",
+      type = "INTEGER",
+      mode = "NULLABLE"
+    },
+    {
+      name = "post_url",
+      type = "STRING",
+      mode = "NULLABLE"
+    },
+    {
+      name = "comment_id",
+      type = "STRING",
+      mode = "NULLABLE"
+    },
+    {
+      name = "summary_date",
+      type = "DATE",
+      mode = "REQUIRED"
+    },
+    {
+      name = "processed_date",
+      type = "TIMESTAMP",
+      mode = "REQUIRED"
+    },
+    {
+      name = "needs_processing",
+      type = "BOOLEAN",
+      mode = "REQUIRED"
+    },
+    {
+      name = "post_content",
+      type = "STRING",
+      mode = "NULLABLE"
+    },
+    {
+      name = "comment_body",
+      type = "STRING",
+      mode = "NULLABLE"
+    }
+  ])
+}
 ```
 
 #### dbt
@@ -389,7 +576,7 @@ Our data transformations are managed using dbt, which allows us to structure our
 
 ```yaml
 # dbt_project.yml configuration
-name: 'dbt_reddit_summary_local'
+name: 'dbt_reddit_summary_cloud'
 version: '1.0.0'
 
 models:
@@ -413,12 +600,24 @@ The DBT workflow includes three main transformation models:
 
 1. **Staging Model** (`current_summary_staging`):
 ```sql
--- Materialized as a view for real-time filtering
+{{
+    config(
+        materialized='view'
+    )
+}}
+
 SELECT
-    id, subreddit, post_id, post_score, post_url,
-    comment_id, summary_date, processed_date,
-    post_content, comment_body
-FROM {{ source('summary_analytics', 'daily_summary_data') }}
+    id,
+    subreddit,
+    post_id,
+    post_score,
+    post_url,
+    comment_id,
+    summary_date,
+    processed_date,
+    post_content,
+    comment_body
+FROM {{ source('summary_analytics', 'daily_summary_data') }} ds
 WHERE comment_body IS NOT NULL
     AND needs_processing = TRUE
 ```
@@ -427,6 +626,11 @@ The current_summary_staging model is a view that selects key fields from the dai
 
 2. **Analysis Model** (`joined_summary_analysis`):
 ```sql
+{{ config(
+    materialized='table',
+    unique_key='comment_id',
+) }}
+
 WITH validation_cte AS (
     SELECT 
         cs.*,
@@ -439,7 +643,7 @@ WITH validation_cte AS (
             ELSE 'Valid'
         END as comment_quality,
         CASE 
-            WHEN ts.comment_summary IS NULL THEN 'Missing'
+            WHEN ts.comment_summary IS NULL OR TRIM(ts.comment_summary) = '' THEN 'Missing'
             WHEN LENGTH(ts.comment_summary) > LENGTH(cs.comment_body) THEN 'Invalid'
             ELSE 'Valid'
         END as summary_quality
@@ -774,23 +978,59 @@ The analysis is integrated into the main pipeline with organized output storage:
 
 ```python
 def analyze_data():
-    """Main function to analyze Reddit data using Gemini."""
-    # Set up dated output directory
-    current_date = datetime.now()
-    output_dir = os.path.join(
-        '/opt/airflow/results',
-        current_date.strftime('%Y'),
-        current_date.strftime('%m'),
-        current_date.strftime('%d')
-    )
-    os.makedirs(output_dir, exist_ok=True)
-
-    # Initialize Gemini model
-    model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    """
+    Main function to analyze Reddit data using Google's Gemini model.
     
-    # Process each subreddit
-    for subreddit in SUBREDDITS:
-        process_subreddit(model, cur, subreddit, output_dir)
+    Pipeline steps:
+    1. Set up logging and output directory with current date
+    2. Initialize Gemini model
+    3. Connect to BigQuery and GCS
+    4. Process each subreddit
+    5. Clean generated markdown files
+    6. Upload results to GCS
+    """
+    try:
+        # 1. Set up output directory with year/month/day structure
+        current_date = datetime.now()
+        year = current_date.strftime('%Y')
+        month = current_date.strftime('%m')
+        day = current_date.strftime('%d')
+        
+        output_dir = os.path.join(CLOUD_DIR, 'results', year, month, day)
+        os.makedirs(output_dir, exist_ok=True)
+        logger.info(f"Output directory set to {output_dir}")
+
+        # 2. Initialize model
+        genai.configure(api_key=GEMINI_CONFIG['GOOGLE_GEMINI_API_KEY'])
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        logger.info("Model loaded")
+
+        # 3. Connect to BigQuery and GCS
+        bq_client = bigquery.Client()
+        storage_client = storage.Client()
+        logger.info("BigQuery and GCS clients initialized")
+
+        # 4. Process subreddits
+        for subreddit in SUBREDDITS:
+            process_subreddit(model, bq_client, subreddit, output_dir)
+            
+        # 5. Clean markdown files and upload to GCS
+        for filename in os.listdir(output_dir):
+            if filename.endswith('.md'):
+                local_file_path = os.path.join(output_dir, filename)
+                
+                # Clean the markdown file
+                clean_markdown_file(local_file_path)
+                
+                # Upload to GCS
+                gcs_blob_path = get_gcs_path(year, month, day, filename)
+                upload_to_gcs(local_file_path, gcs_blob_path, storage_client)
+        
+        logger.info("Analysis complete - all files processed and uploaded to GCS")
+
+    except Exception as e:
+        logger.error(f"Pipeline failed: {e}")
+        raise
 ```
 
 
@@ -847,91 +1087,151 @@ The Airflow setup is containerized using Docker Compose with several key compone
 ```yaml
 x-common-env: &common-env
   AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-  AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@postgres/${AIRFLOW_DB_NAME}
+  AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@postgres/${AIRFLOW_DB_NAME}
   AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+  AIRFLOW__CORE__LOAD_EXAMPLES: false
+  AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/airflow_project/dags
+  AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/airflow_project/logs
+  AIRFLOW__CORE__PLUGINS_FOLDER: /opt/airflow/airflow_project/plugins
+  AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
+  AIRFLOW__LOGGING__FAB_LOGGING_LEVEL: WARNING
+  AIRFLOW__LOGGING__LOGGING_CONFIG_CLASS: airflow.config_templates.airflow_local_settings.DEFAULT_LOGGING_CONFIG
+  AIRFLOW__LOGGING__DELETE_LOCAL_LOGS: "true"
+  AIRFLOW__LOGGING__MAX_LOG_AGE_IN_DAYS: 7
+  PYTHONPATH: /opt/airflow
   AIRFLOW__METRICS__STATSD_ON: "true"
   AIRFLOW__METRICS__STATSD_HOST: "statsd-exporter"
   AIRFLOW__METRICS__STATSD_PORT: "9125"
+  AIRFLOW__METRICS__STATSD_PREFIX: "airflow"
+  AIRFLOW__METRICS__STATSD_ALLOW_LIST: "*"
+  AIRFLOW__METRICS__METRICS_ALLOW_LIST: "*"
+  AIRFLOW__WEBSERVER__EXPOSE_METRICS: 'true'
+  AIRFLOW__METRICS__STATSD_INTERVAL: "30"
+  GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS}
+  GH_PAT: ${GH_PAT}
+  GH_OWNER: ${GH_OWNER}
+  GH_REPO: ${GH_REPO}
+  GH_WEBSITE_REPO: ${GH_WEBSITE_REPO}
+  GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+  GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
+  STOP_VM_FUNCTION_URL: ${STOP_VM_FUNCTION_URL}
+  ALERT_EMAIL: ${ALERT_EMAIL}
+  AIRFLOW__SMTP__SMTP_HOST: smtp.gmail.com
+  AIRFLOW__SMTP__SMTP_USER: ${ALERT_EMAIL}
+  AIRFLOW__SMTP__SMTP_PASSWORD: ${ALERT_EMAIL_PASSWORD}
+  AIRFLOW__SMTP__SMTP_PORT: 587
+  AIRFLOW__SMTP__SMTP_MAIL_FROM: ${ALERT_EMAIL}
+  AIRFLOW__SMTP__SMTP_STARTTLS: "true"
+  AIRFLOW__SMTP__SMTP_SSL: "false"
+
+x-common-volumes: &common-volumes
+  - ..:/opt/airflow
+  - ../credentials:/opt/airflow/credentials
+  - ../mlflow:/mlflow
+  - ../results:/opt/airflow/results
+  - ../dbt_reddit_summary_cloud:/opt/airflow/dbt_reddit_summary_cloud
+
+x-airflow-common: &airflow-common
+  volumes: *common-volumes
+  environment:
+    <<: *common-env
+  user: "${AIRFLOW_UID:-50000}:0"
 ```
 
 The Airflow services are deployed as separate containers, each with specific responsibilities:
 
 1. **Airflow Webserver**
    ```yaml
-   airflow-webserver:
-     build:
-       context: .
-       dockerfile: Dockerfile.webserver
-     ports:
-       - "8080:8080"
-     volumes: *common-volumes
-     environment:
-       <<: *common-env
-     command: airflow webserver
-     healthcheck:
-       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-       interval: 30s
-       timeout: 30s
-       retries: 10
+  airflow-webserver:
+    image: ${DOCKER_REGISTRY}/reddit-airflow-webserver:latest
+    <<: *airflow-common
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    command: airflow webserver
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+      start_period: 60s
+    restart: always
    ```
 Our Airflow webserver provides the web UI for DAG management and monitoring, handles user authentication and authorization, exposes REST API endpoints, and includes health checks to ensure UI availability.
 
 2. **Airflow Scheduler**
    ```yaml
-   airflow-scheduler:
-     build:
-       context: .
-       dockerfile: Dockerfile.scheduler
-     volumes: *common-volumes
-     environment:
-       <<: *common-env
-     command: airflow scheduler
-     healthcheck:
-       test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
-       interval: 30s
-       retries: 10
+  airflow-scheduler:
+    image: ${DOCKER_REGISTRY}/reddit-airflow-scheduler:latest
+    <<: *airflow-common
+    depends_on:
+      airflow-webserver:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: airflow scheduler
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 30s
+      retries: 10
+      start_period: 60s
+    restart: always
    ```
 The Airflow scheduler monitors and triggers task execution, manages DAG parsing and scheduling, handles task dependencies and queuing, and ensures proper task distribution to workers. This component is crucial for orchestrating our data pipeline.
 
 3. **Airflow Worker**
    ```yaml
-   airflow-worker:
-     build:
-       context: .
-       dockerfile: Dockerfile.worker
-     volumes: *common-volumes
-     environment:
-       <<: *common-env
-       TRANSFORMERS_OFFLINE: "0"
-       TOKENIZERS_PARALLELISM: "false"
-       PYTORCH_ENABLE_MPS_FALLBACK: "1"
-     command: airflow celery worker
-     healthcheck:
-       test: ["CMD-SHELL", 'celery inspect ping -d "celery@$${HOSTNAME}"']
-       interval: 30s
-       retries: 5
+  airflow-worker:
+    image: ${DOCKER_REGISTRY}/reddit-airflow-worker:latest
+    <<: *airflow-common
+    depends_on:
+      airflow-webserver:
+        condition: service_healthy
+    command: airflow celery worker
+    healthcheck:
+      test: ["CMD-SHELL", 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"']
+      interval: 30s
+      timeout: 30s
+      retries: 5
+    restart: always
    ```
 Our Airflow worker executes the actual tasks, handles ML model inference, manages resource allocation, supports parallel task execution, and is configured for ML workloads with PyTorch and Transformers.
 
 4. **Airflow Init**
    ```yaml
-   airflow-init:
-     build:
-       context: .
-       dockerfile: Dockerfile.webserver
-     command: >
-       bash -c "
-       airflow db init &&
-       airflow db upgrade &&
-       airflow users create -r Admin -u admin -p admin -e admin@example.com -f Anonymous -l Admin
-       "
+  airflow-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.webserver
+    env_file:
+      - ../.env
+    <<: *airflow-common
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      GIT_PYTHON_REFRESH: quiet
+    command: >
+      bash -c "
+      airflow db init &&
+      airflow db upgrade &&
+      airflow users create -r Admin -u admin -p admin -e admin@example.com -f Anonymous -l Admin
+      "
    ```
 The Airflow init service initializes the Airflow database, creates an admin user, performs database migrations, and runs only during the initial setup. This component is essential for setting up the Airflow environment.
 
 
 ##### 2. Pipeline Structure
-Our DAG (`reddit_pipeline`) is organized into 26 stages but can be categorized into 5 main sections, each with specific responsibilities and metrics collection:
+Our DAG (`reddit_pipeline`) is organized into 27 stages but can be categorized into 6 main sections, each with specific responsibilities and metrics collection:
 
 1. **Data Collection and Preprocessing**
    ```python
@@ -946,7 +1246,7 @@ Data is ingested and preprocessed.
    ```python
    dbt_staging_task = BashOperator(
        task_id='run_dbt_staging',
-       bash_command='cd /opt/airflow/dags/dbt_reddit_summary_local && dbt run --select current_summary_staging',
+       bash_command='cd /opt/airflow/dags/dbt_reddit_summary_cloud && dbt run --select current_summary_staging',
        dag=dag
    )
    ```
@@ -989,6 +1289,19 @@ DBT tests are run to ensure the data is valid.
 5. **Metrics Collection**
     - We monitor our pipeline with dedicated metrics tasks, using a StatsD exporter to send real-time data to Prometheus, and MLflow tracking for model performance.
 
+6. **Shutdown VM using Cloud Function**
+   ```python    
+    shutdown_vm = PythonOperator(
+        task_id='shutdown_vm',
+        python_callable=trigger_vm_shutdown,
+        provide_context=True,
+        trigger_rule='all_done',  # Run even if upstream tasks fail
+        retries=0,  # Don't retry on failure since VM will be shutting down
+        dag=dag,
+        email_on_failure=False,
+    )
+    ```
+
 ##### 3. Task Dependencies
 The pipeline follows a clear dependency chain:
 ```python
@@ -997,12 +1310,12 @@ dbt_test_raw_sources >> dbt_test_raw_metrics_task >> \
 dbt_staging_task >> dbt_test_staging_models >> \
 summarize_task >> sentiment_task >> \
 dbt_join_summary_analysis_task >> \
-gemini_task >> push_gemini_results_task
+gemini_task >> push_gemini_results_task >> shutdown_vm
 ```
-Our pipeline starts with data ingestion and preprocessing, followed by DBT testing and staging, then text summarization and sentiment analysis, and finally Gemini AI analysis and result pushing.
+Our pipeline starts with data ingestion and preprocessing, followed by DBT testing and staging, then text summarization and sentiment analysis, and finally Gemini AI analysis, result pushing and VM shutdown.
 
 ##### 4. Integration Points
-The orchestrator connects with PostgreSQL for pipeline data storage, local model deployment for model serving, StatsD and Prometheus for monitoring, and GitHub for version control of results. These connections are essential for the functionality of our pipeline
+The orchestrator connects with BigQuery for pipeline data storage, local model deployment for model serving, StatsD and Prometheus for monitoring, and GitHub for version control of results. These connections are essential for the functionality of our pipeline.
 
 #### Observability Stack
 We use Grafana, Prometheus, and MLflow for comprehensive pipeline observability, with each component containerized and integrated through a centralized metrics system.
@@ -1076,6 +1389,233 @@ MLflow's model versioning, experiment tracking, model serving, and artifact mana
 ##### 5. Alert Configuration
 The system monitors critical thresholds for performance, including task duration, error rate spikes, resource exhaustion, and pipeline stalls. It also monitors quality thresholds, including data validation failures, model performance degradation, processing anomalies, and system health issues
 
+##### 6. Cloud Monitoring
+We use Cloud Monitoring to monitor the health of our VM and Cloud Run service, and to set up alerts for critical issues.
+
+```terraform
+# Cloud Monitoring Dashboard
+resource "google_monitoring_dashboard" "airflow_dashboard" {
+  dashboard_json = jsonencode({
+    displayName = "Reddit Pipeline Dashboard"
+    gridLayout = {
+      columns = "2"
+      widgets = [
+        # VM Metrics
+        {
+          title = "VM CPU Utilization"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" resource.type=\"gce_instance\""
+                }
+              }
+            }]
+          }
+        },
+        {
+          title = "VM Memory Usage"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "metric.type=\"compute.googleapis.com/instance/memory/usage\" resource.type=\"gce_instance\""
+                }
+              }
+            }]
+          }
+        },
+        # Airflow Task Metrics
+        {
+          title = "DAG Success Rate"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "metric.type=\"custom.googleapis.com/airflow/dag_success_rate\""
+                }
+              }
+            }]
+          }
+        },
+        {
+          title = "Task Duration"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "metric.type=\"custom.googleapis.com/airflow/task_duration\""
+                }
+              }
+            }]
+          }
+        },
+        # Pipeline Metrics
+        {
+          title = "Records Processed"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "metric.type=\"custom.googleapis.com/reddit/records_processed\""
+                }
+              }
+            }]
+          }
+        },
+        {
+          title = "Processing Errors"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "metric.type=\"custom.googleapis.com/reddit/processing_errors\""
+                }
+              }
+            }]
+          }
+        }
+      ]
+    }
+  })
+}
+
+# Alert Policies
+resource "google_monitoring_alert_policy" "vm_cpu_utilization" {
+  display_name = "High CPU Utilization Alert"
+  combiner     = "OR"
+  conditions {
+    display_name = "CPU Usage > 80%"
+    condition_threshold {
+      filter          = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" resource.type=\"gce_instance\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.8
+      trigger {
+        count = 1
+      }
+    }
+  }
+  notification_channels = [google_monitoring_notification_channel.email.id]
+}
+
+resource "google_monitoring_alert_policy" "airflow_task_failures" {
+  display_name = "Airflow Task Failures Alert"
+  combiner     = "OR"
+  conditions {
+    display_name = "Task Failure Rate > 20%"
+    condition_threshold {
+      filter          = "metric.type=\"${google_monitoring_metric_descriptor.airflow_task_failure_rate.type}\" AND resource.type=\"gce_instance\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.2
+      trigger {
+        count = 1
+      }
+    }
+  }
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  enabled = true
+  depends_on = [google_monitoring_metric_descriptor.airflow_task_failure_rate]
+}
+
+resource "google_monitoring_alert_policy" "pipeline_errors" {
+  display_name = "Pipeline Processing Errors Alert"
+  combiner     = "OR"
+  conditions {
+    display_name = "Processing Error Rate"
+    condition_threshold {
+      filter          = "metric.type=\"${google_monitoring_metric_descriptor.processing_errors.type}\" AND resource.type=\"gce_instance\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 10
+      trigger {
+        count = 1
+      }
+    }
+  }
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  enabled = true
+  depends_on = [google_monitoring_metric_descriptor.processing_errors]
+}
+
+resource "google_monitoring_alert_policy" "vm_automation" {
+  display_name = "VM Automation Alert"
+  combiner     = "OR"
+  conditions {
+    display_name = "VM Start/Stop Failures"
+    condition_threshold {
+      filter          = "metric.type=\"${google_monitoring_metric_descriptor.vm_automation_failures.type}\" AND resource.type=\"gce_instance\""
+      duration        = "0s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      trigger {
+        count = 1
+      }
+    }
+  }
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  enabled = true
+  depends_on = [google_monitoring_metric_descriptor.vm_automation_failures]
+}
+
+# Notification Channels
+resource "google_monitoring_notification_channel" "email" {
+  display_name = "Email Notification Channel"
+  type         = "email"
+  labels = {
+    email_address = var.alert_email_address
+  }
+}
+
+# Optional: Slack notification channel
+resource "google_monitoring_notification_channel" "slack" {
+  count = var.slack_webhook_url != "" ? 1 : 0
+  
+  display_name = "Slack Notification Channel"
+  type         = "slack"
+  labels = {
+    channel_name = "#airflow-alerts"
+  }
+  sensitive_labels {
+    auth_token = var.slack_webhook_url
+  }
+}
+
+# First, define the custom metric descriptors
+resource "google_monitoring_metric_descriptor" "airflow_task_failure_rate" {
+  description = "Rate of Airflow task failures"
+  display_name = "Airflow Task Failure Rate"
+  type = "custom.googleapis.com/airflow/task_failure_rate"
+  metric_kind = "GAUGE"
+  value_type = "DOUBLE"
+  unit = "1"
+  labels {
+    key = "task_id"
+    value_type = "STRING"
+    description = "The ID of the Airflow task"
+  }
+}
+
+resource "google_monitoring_metric_descriptor" "processing_errors" {
+  description = "Number of processing errors in the pipeline"
+  display_name = "Pipeline Processing Errors"
+  type = "custom.googleapis.com/reddit/processing_errors"
+  metric_kind = "GAUGE"
+  value_type = "INT64"
+  unit = "1"
+}
+
+resource "google_monitoring_metric_descriptor" "vm_automation_failures" {
+  description = "Number of VM automation failures"
+  display_name = "VM Automation Failures"
+  type = "custom.googleapis.com/airflow/vm_automation_failures"
+  metric_kind = "GAUGE"
+  value_type = "INT64"
+  unit = "1"
+} 
+```
+
 ## Results and Impact
 
 The pipeline successfully processes a thousand of Reddit posts daily, generates concise and meaningful summaries, identifies key trends and discussions, maintains high accuracy in content filtering, provides real-time insights through a web interface. 
@@ -1101,7 +1641,7 @@ The pipeline successfully processes a thousand of Reddit posts daily, generates 
 This project showcases the power of automation in extracting valuable insights from social media using AI and data engineering, while handling real-world challenges. The open-source code is on GitHub, and welcome community contributions.
 
 ## Resources and References
-- [Project GitHub Repository](https://github.com/SulmanK/reddit_ai_pulse_local_public)
+- [Project GitHub Repository](https://github.com/SulmanK/reddit_ai_pulse_cloud_public)
 - [Web Application](https://reddit-text-insight-and-sentiment-website-local.vercel.app/)
 
 
