@@ -120,7 +120,8 @@ This modular design ensures adaptability, maintainability, and scalability, enab
 ### Deep Dive: Key Components
 
 #### Resource Management
-Resource management is done using Terraform, which enables consistent, efficient, and automated provisioning of cloud resources across multiple platforms.
+The Reddit AI Pulse infrastructure on Google Cloud is a comprehensive data processing platform, designed with Terraform for scalability and security. At its heart, a custom network provides a secure foundation for a Debian VM running Airflow, which orchestrates the entire data pipeline. Data is efficiently managed using BigQuery for both raw feeds and analytics, along with a Cloud Storage bucket for logs and other artifacts. This automated, cost-effective setup ensures reliable analysis and processing of large-scale Reddit data.
+
 
 ##### Resource Creation 
 `build_res.sh` is a shell script that builds the resources using Terraform.
