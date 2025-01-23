@@ -74,10 +74,10 @@ The diagram above illustrates the flow of data through our system, from collecti
     - Efficient query processing
     - Cost-optimized table partitioning
 - **DBT Transformations**:
-   -  Stage posts and comments for further processing.
-   -  Clean and standardize data structures.
-   -  Manage processing state for each pipeline run.
-   -  Automate cleanup upon pipeline completion.
+    -  Stage posts and comments for further processing.
+    -  Clean and standardize data structures.
+    -  Manage processing state for each pipeline run.
+    -  Automate cleanup upon pipeline completion.
 
 ### 3. Processing Layer
 - **Text Summarization**: BART for concise summaries
@@ -118,6 +118,82 @@ This modular design ensures adaptability, maintainability, and scalability, enab
 
 
 ### Deep Dive: Key Components
+
+#### Resource Management
+Resource management is done using Terraform.
+
+##### Resource Creation 
+build_res.sh is a shell script that builds the resources using Terraform.
+```bash
+# =============================================================================
+# build_res.sh
+# -----------------------------------------------------------------------------
+# Main deployment script for the Reddit AI Pulse Cloud infrastructure.
+# This script sets up and configures all necessary GCP resources for the project.
+#
+# The script performs the following operations:
+# 1. Loads environment configuration
+# 2. Generates terraform.tfvars from environment variables
+# 3. Sets up Docker and Artifact Registry
+# 4. Builds and pushes Cloud Run images
+# 5. Initializes and applies Terraform configuration
+# 6. Updates Cloud Run URLs in .env file
+# 7. Manages service account credentials
+# 8. Uploads secrets to GitHub
+# 9. Configures Git repository settings
+#
+# The script includes error handling, logging, and automatic backup
+# of sensitive files. It can optionally commit changes to Git.
+#
+# Usage:
+#   ./build_res.sh
+#
+# Requirements:
+#   - .env file with required configuration
+#   - Authenticated gcloud CLI
+#   - Docker installed and configured
+#   - GitHub CLI installed and authenticated
+#   - Terraform installed
+# =============================================================================
+```
+
+##### Resource Deletion
+delete_res.sh is a shell script that deletes the resources using Terraform.
+```bash
+# =============================================================================
+# cleanup.sh
+# -----------------------------------------------------------------------------
+# A comprehensive cleanup script for the Reddit AI Pulse Cloud infrastructure.
+# This script systematically removes all GCP resources created by the project.
+#
+# The script performs cleanup in the following order:
+# 1. IAM (roles and bindings)
+# 2. Cloud Scheduler jobs
+# 3. Cloud Functions
+# 4. GCS buckets and contents
+# 5. BigQuery datasets and tables
+# 6. Artifact Registry repositories
+# 7. Cloud Run services
+# 8. Service accounts
+# 9. Compute Engine resources
+# 10. VPC, subnets, and firewall rules
+# 11. Monitoring resources (alerts, dashboards)
+# 12. Terraform state
+# 13. Log buckets
+#
+# The script includes error handling, retries for dependent resources,
+# and creates detailed logs of the cleanup process in the resource_info directory.
+#
+# Usage:
+#   ./cleanup.sh
+#
+# Requirements:
+#   - GCP project configuration in .env file
+#   - Authenticated gcloud CLI
+#   - Required permissions to delete resources
+# =============================================================================
+```
+
 
 #### Reddit Data Collection and Preprocessing
 The foundation of our pipeline is reliable data collection and preprocessing. We utilize Python's Reddit API wrapper (PRAW) to fetch posts and comments from specified subreddits, with immediate text preprocessing for clean data storage.
@@ -1316,6 +1392,325 @@ Our pipeline starts with data ingestion and preprocessing, followed by DBT testi
 
 ##### 4. Integration Points
 The orchestrator connects with BigQuery for pipeline data storage, local model deployment for model serving, StatsD and Prometheus for monitoring, and GitHub for version control of results. These connections are essential for the functionality of our pipeline.
+
+
+
+##### 5. Cloud Function
+
+###### 5.1. Start VM
+Cloud Function to start the VM is deployed using Cloud Run. 
+
+```python
+# Create Flask app
+app = Flask(__name__)
+
+def get_gcloud_path():
+    """Get the full path to gcloud executable based on OS"""
+    if platform.system() == "Windows":
+        # Common installation paths for gcloud on Windows
+        possible_paths = [
+            r"C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+            r"C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+            os.path.expanduser("~") + r"\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        raise Exception("gcloud not found. Please ensure Google Cloud SDK is installed and in PATH")
+    return "gcloud"  # For non-Windows systems, assume it's in PATH
+
+@app.route("/", methods=["POST"])
+def start_vm_http():
+    """
+    HTTP endpoint for Cloud Run to start a Compute Engine instance.
+    Accepts POST requests with optional JSON body:
+    {'trigger_source': 'scheduler'|'manual'|'dag'}
+    """
+    return start_vm(request)
+
+def start_vm(request):
+    """
+    Function to start a Compute Engine instance and execute startup script.
+    """
+    project = os.environ.get('PROJECT_ID')
+    zone = os.environ.get('ZONE')
+    instance = os.environ.get('INSTANCE')
+    gh_repo = os.environ.get('GH_REPO')
+
+    # Setup logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    logger.info(f"Environment: PROJECT_ID={project}, ZONE={zone}, INSTANCE={instance}, GH_REPO={gh_repo}")
+
+    # Parse request data
+    trigger_source = "scheduler"
+    if request and hasattr(request, 'is_json') and request.is_json:
+        data = request.get_json()
+        if data and 'trigger_source' in data:
+            trigger_source = data.get('trigger_source')
+    
+    logger.info(f"Start triggered by: {trigger_source}")
+
+    try:
+        # Get gcloud path
+        gcloud_path = get_gcloud_path()
+        logger.info(f"Using gcloud path: {gcloud_path}")
+
+        # Check if instance is running
+        status_cmd = [gcloud_path, "compute", "instances", "describe", instance,
+                     f"--zone={zone}", f"--project={project}",
+                     "--format=get(status)"]
+        status = subprocess.run(status_cmd, text=True, capture_output=True)
+        
+        is_running = status.stdout.strip().upper() == "RUNNING"
+        
+        if not is_running:
+            # Start the instance
+            start_cmd = [gcloud_path, "compute", "instances", "start", instance,
+                        f"--zone={zone}", f"--project={project}", "--quiet"]
+            logger.info(f"Starting instance with command: {' '.join(start_cmd)}")
+            process = subprocess.run(start_cmd, text=True, capture_output=True)
+            
+            if process.returncode != 0:
+                error_msg = f"Failed to start instance: {process.stderr}"
+                logger.error(error_msg)
+                return jsonify({'status': 'error', 'message': error_msg}), 500
+            
+            # Wait for VM to be fully started
+            logger.info("Waiting 90 seconds for VM to be fully ready...")
+            time.sleep(90)
+
+        # Execute startup script
+        logger.info("Executing startup script...")
+        startup_cmd = [gcloud_path, "compute", "ssh", "--quiet", f"airflow@{instance}",
+                      f"--zone={zone}", f"--project={project}", 
+                      "--command", f"bash /opt/airflow/{gh_repo}/Cloud/infrastructure/terraform/vm_scripts/start_dag.sh"]
+        
+        process = subprocess.run(startup_cmd, text=True, capture_output=True)
+        
+        if process.returncode == 0:
+            logger.info("Startup script executed successfully")
+            logger.info(f"Startup stdout: {process.stdout}")
+            msg = f'Successfully started instance and executed startup script'
+            return jsonify({'status': 'success', 'message': msg})
+        else:
+            error_msg = f"Startup script failed: {process.stderr}"
+            logger.error(error_msg)
+            return jsonify({'status': 'error', 'message': error_msg}), 500
+
+    except Exception as e:
+        error_msg = f'Error during startup process: {str(e)}'
+        logger.error(error_msg)
+        logger.error(f"Full stack trace: {traceback.format_exc()}")
+        return jsonify({'status': 'error', 'message': error_msg}), 500
+```
+###### 5.2. Stop VM
+Cloud Function to stop the VM is deployed using Cloud Run. 
+```python
+import os
+import json
+import logging
+import subprocess
+from flask import Flask, request, jsonify
+import platform
+import traceback
+
+# Create Flask app
+app = Flask(__name__)
+
+def get_gcloud_path():
+    """Get the full path to gcloud executable based on OS"""
+    if platform.system() == "Windows":
+        # Common installation paths for gcloud on Windows
+        possible_paths = [
+            r"C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+            r"C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+            os.path.expanduser("~") + r"\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        raise Exception("gcloud not found. Please ensure Google Cloud SDK is installed and in PATH")
+    return "gcloud"  # For non-Windows systems, assume it's in PATH
+
+@app.route("/", methods=["POST"])
+def stop_vm_http():
+    """
+    HTTP endpoint for Cloud Run to stop a Compute Engine instance.
+    Accepts POST requests with optional JSON body:
+    {'trigger_source': 'scheduler'|'manual'|'dag'}
+    """
+    return stop_vm(request)
+
+def stop_vm(request):
+    """
+    Function to stop a Compute Engine instance.
+    Only runs shutdown script if VM is running.
+    
+    Args:
+        request (flask.Request): The request object
+        - If called from manual trigger: expects JSON with {'trigger_source': 'manual'}
+        - If called from Scheduler: no specific payload needed
+    Returns:
+        JSON response with status message
+    """
+    project = os.environ.get('PROJECT_ID')
+    zone = os.environ.get('ZONE')
+    instance = os.environ.get('INSTANCE')
+    gh_repo = os.environ.get('GH_REPO')
+
+    # Setup detailed logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+
+    # Log environment variables (excluding any sensitive data)
+    logger.info(f"Environment: PROJECT_ID={project}, ZONE={zone}, INSTANCE={instance}, GH_REPO={gh_repo}")
+
+    # Parse request data if present
+    trigger_source = "scheduler"
+    if request and hasattr(request, 'is_json') and request.is_json:
+        data = request.get_json()
+        if data and 'trigger_source' in data:
+            trigger_source = data.get('trigger_source')
+    
+    logger.info(f"Shutdown triggered by: {trigger_source}")
+
+    try:
+        # Get gcloud path
+        gcloud_path = get_gcloud_path()
+        logger.info(f"Using gcloud path: {gcloud_path}")
+
+        # Check if instance is running
+        status_cmd = [gcloud_path, "compute", "instances", "describe", instance, 
+                     f"--zone={zone}", f"--project={project}", 
+                     "--format=get(status)"]
+        status = subprocess.run(status_cmd, text=True, capture_output=True)
+        
+        is_running = status.stdout.strip().upper() == "RUNNING"
+        
+        if not is_running:
+            msg = f'Instance {instance} is already stopped (Triggered by: {trigger_source})'
+            logger.info(msg)
+            return jsonify({'status': 'success', 'message': msg})
+
+        # Execute shutdown script via SSH since VM is running
+        logger.info("Executing shutdown script via SSH...")
+        shutdown_cmd = f"bash /opt/airflow/{gh_repo}/Cloud/infrastructure/terraform/vm_scripts/shutdown.sh"
+        ssh_cmd = [gcloud_path, "compute", "ssh", "--quiet", f"airflow@{instance}", 
+                  f"--zone={zone}", f"--project={project}", "--command", shutdown_cmd]
+        
+        logger.info(f"Executing command: {' '.join(ssh_cmd)}")
+        process = subprocess.run(ssh_cmd, text=True, capture_output=True)
+        
+        if process.returncode != 0:
+            logger.error(f"SSH command failed with return code {process.returncode}")
+            logger.error(f"SSH stderr: {process.stderr}")
+            logger.error(f"SSH stdout: {process.stdout}")
+            raise Exception(f"Failed to execute shutdown script: {process.stderr}")
+        
+        logger.info("Shutdown script executed successfully. Stopping instance...")
+        logger.info(f"SSH stdout: {process.stdout}")
+
+        # Stop the instance
+        stop_cmd = [gcloud_path, "compute", "instances", "stop", instance, 
+                   f"--zone={zone}", f"--project={project}", "--quiet"]
+        logger.info(f"Executing stop command: {' '.join(stop_cmd)}")
+        process = subprocess.run(stop_cmd, text=True, capture_output=True)
+        
+        if process.returncode != 0:
+            logger.error(f"Stop command failed with return code {process.returncode}")
+            logger.error(f"Stop stderr: {process.stderr}")
+            logger.error(f"Stop stdout: {process.stdout}")
+            raise Exception(f"Failed to stop instance: {process.stderr}")
+        
+        logger.info(f"Stop command stdout: {process.stdout}")
+        msg = f'Successfully executed shutdown script and stopped instance {instance} (Triggered by: {trigger_source})'
+        logger.info(msg)
+        return jsonify({'status': 'success', 'message': msg})
+
+    except Exception as e:
+        error_msg = f'Error during shutdown process: {str(e)}'
+        logger.error(error_msg)
+        logger.error(f"Full stack trace: {traceback.format_exc()}")
+        return jsonify({'status': 'error', 'message': error_msg}), 500
+
+if __name__ == "__main__":
+    # For local testing with Flask
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 9099)), debug=False) 
+```
+
+###### 5.3. Cloud Scheduler
+Cloud Scheduler is used to trigger the Cloud Function to start and stop the VM daily at 4:00 PM EST and 6:00 PM EST respectively.
+
+```terraform
+# Service account for Cloud Scheduler
+resource "google_service_account" "scheduler_sa" {
+  account_id   = "vm-scheduler-sa"
+  display_name = "Service Account for VM Scheduler"
+
+  lifecycle {
+    ignore_changes = [
+      account_id,
+      display_name
+    ]
+  }
+}
+
+# Grant necessary permissions
+resource "google_project_iam_member" "scheduler_sa_compute_admin" {
+  project = var.project
+  role    = "roles/compute.instanceAdmin.v1"
+  member  = "serviceAccount:${google_service_account.scheduler_sa.email}"
+}
+
+# Cloud Scheduler job for starting VM (4:00 PM EST)
+resource "google_cloud_scheduler_job" "start_vm_schedule" {
+  name             = "start-vm-daily"
+  description      = "Starts the Airflow VM daily at 4:00 PM EST"
+  schedule         = "0 16 * * *"  # 16:00 = 4:00 PM
+  time_zone        = "America/New_York"
+  attempt_deadline = "900s"  # 15 minutes
+
+  http_target {
+    http_method = "POST"
+    uri         = google_cloud_run_service.start_vm.status[0].url
+    
+    body = base64encode(jsonencode({
+      trigger_source = "scheduler"
+    }))
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+  }
+}
+
+# Cloud Scheduler job for stopping VM (6:00 PM EST)
+resource "google_cloud_scheduler_job" "stop_vm_schedule" {
+  name             = "stop-vm-daily"
+  description      = "Stops the Airflow VM daily at 6:00 PM EST (backup)"
+  schedule         = "0 18 * * *"  # 18:00 = 6:00 PM
+  time_zone        = "America/New_York"
+  attempt_deadline = "900s"  # 15 minutes
+
+  http_target {
+    http_method = "POST"
+    uri         = google_cloud_run_service.stop_vm.status[0].url
+    
+    body = base64encode(jsonencode({
+      trigger_source = "scheduler"
+    }))
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+  }
+} 
+```
+
 
 #### Observability Stack
 We use Grafana, Prometheus, and MLflow for comprehensive pipeline observability, with each component containerized and integrated through a centralized metrics system.
