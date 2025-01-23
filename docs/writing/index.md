@@ -3,5 +3,6 @@
 * [RecSys Challenge 2024: Exploratory Data Analysis](./posts/recsys_2024_eda.md)
 * [RecSys Challenge 2024: Model Selection](./posts/recsys_2024_modeling.md)
 * [From Reddit to Insights: Building an AI-Powered Data Pipeline with Gemini (On-Prem)](./posts/reddit_text_insight_sentiment_local.md)
+* [From Reddit to Insights: Building an AI-Powered Data Pipeline with Gemini (Cloud)](./posts/reddit_text_insight_sentiment_cloud.md)
 
 
