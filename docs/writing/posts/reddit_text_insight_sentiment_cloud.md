@@ -120,10 +120,10 @@ This modular design ensures adaptability, maintainability, and scalability, enab
 ### Deep Dive: Key Components
 
 #### Resource Management
-Resource management is done using Terraform.
+Resource management is done using Terraform, which enables consistent, efficient, and automated provisioning of cloud resources across multiple platforms.
 
 ##### Resource Creation 
-build_res.sh is a shell script that builds the resources using Terraform.
+`build_res.sh` is a shell script that builds the resources using Terraform.
 ```bash
 # =============================================================================
 # build_res.sh
@@ -156,9 +156,122 @@ build_res.sh is a shell script that builds the resources using Terraform.
 #   - Terraform installed
 # =============================================================================
 ```
+Once the resources are created, secrets are securely uploaded to Google Cloud Storage (GCS) using GitHub Actions via the `upload-secrets.yml` workflow.
+
+```yml
+name: Upload Secrets to GCS
+
+on:
+  workflow_dispatch:  # Manual trigger
+  repository_dispatch:
+    types: [secrets_updated]  # Custom event type
+  push:
+    paths:
+      - '.github/workflows/upload-secrets.yml'
+
+jobs:
+  upload-secrets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}'
+
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v2'
+
+    - name: 'Create secrets directory'
+      run: mkdir -p secrets
+
+    - name: 'Create .env file'
+      run: |
+        cat << EOF > secrets/.env
+        # Docker Registry
+        DOCKER_REGISTRY=${{ secrets.DOCKER_REGISTRY }}
+
+        # GCP Project Configuration
+        GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+        GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+        GCP_REGION=${{ secrets.GCP_REGION }}
+        GCP_ZONE=${{ secrets.GCP_ZONE }}
+
+        # Service Account & Authentication
+        GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/credentials/service-account.json
+        SA_EMAIL=${{ secrets.SA_EMAIL }}
+
+        # VM Configuration
+        VM_INSTANCE_NAME=${{ secrets.VM_INSTANCE_NAME }}
+        VM_MACHINE_TYPE=${{ secrets.VM_MACHINE_TYPE }}
+
+        # Network Configuration
+        NETWORK_NAME=${{ secrets.NETWORK_NAME }}
+        SUBNET_NAME=${{ secrets.SUBNET_NAME }}
+        SUBNET_CIDR=${{ secrets.SUBNET_CIDR }}
+
+        # Email Configuration
+        ALERT_EMAIL=${{ secrets.ALERT_EMAIL }}
+        ALERT_EMAIL_PASSWORD=${{ secrets.ALERT_EMAIL_PASSWORD }}
+
+        # BigQuery Configuration
+        BIGQUERY_DATASET_RAW=${{ secrets.BIGQUERY_DATASET_RAW }}
+        BIGQUERY_DATASET_PROCESSED=${{ secrets.BIGQUERY_DATASET_PROCESSED }}
+
+        # Reddit API Configuration
+        REDDIT_CLIENT_ID=${{ secrets.REDDIT_CLIENT_ID }}
+        REDDIT_CLIENT_SECRET=${{ secrets.REDDIT_CLIENT_SECRET }}
+        REDDIT_USERNAME=${{ secrets.REDDIT_USERNAME }}
+        REDDIT_PASSWORD=${{ secrets.REDDIT_PASSWORD }}
+        REDDIT_USER_AGENT=${{ secrets.REDDIT_USER_AGENT }}
+
+        # Gemini API Key
+        GOOGLE_GEMINI_API_KEY=${{ secrets.GOOGLE_GEMINI_API_KEY }}
+
+        # GitHub Configuration
+        GH_PAT=${{ secrets.GH_PAT }}
+        GH_OWNER=${{ secrets.GH_OWNER }}
+        GH_REPO=${{ secrets.GH_REPO }}
+        GH_WEBSITE_REPO=${{ secrets.GH_WEBSITE_REPO }}
+        AUTO_COMMIT=${{ secrets.AUTO_COMMIT }}
+
+        # Grafana credentials
+        GF_SECURITY_ADMIN_USER=${{ secrets.GF_SECURITY_ADMIN_USER }}
+        GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}
+
+        # Airflow PostgreSQL credentials
+        AIRFLOW_DB_USER=${{ secrets.AIRFLOW_DB_USER }}
+        AIRFLOW_DB_PASSWORD=${{ secrets.AIRFLOW_DB_PASSWORD }}
+        AIRFLOW_DB_NAME=${{ secrets.AIRFLOW_DB_NAME }}
+
+        # VM Function URLs
+        STOP_VM_FUNCTION_URL=${{ secrets.STOP_VM_FUNCTION_URL }}
+        START_VM_FUNCTION_URL=${{ secrets.START_VM_FUNCTION_URL }}
+
+        # Airflow configuration
+        AIRFLOW_UID=50000
+        AIRFLOW_GID=0
+        EOF
+
+    - name: 'Create service account key file'
+      run: |
+        echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > secrets/service-account.json
+
+    - name: 'Upload secrets to GCS'
+      run: |
+        gsutil cp secrets/.env gs://${{ secrets.GCS_BUCKET_NAME }}/secrets/.env
+        gsutil cp secrets/service-account.json gs://${{ secrets.GCS_BUCKET_NAME }}/secrets/service-account.json 
+```
+
 
 ##### Resource Deletion
-delete_res.sh is a shell script that deletes the resources using Terraform.
+`cleanup.sh` is a shell script that deletes the resources using Terraform.
 ```bash
 # =============================================================================
 # cleanup.sh
@@ -193,7 +306,6 @@ delete_res.sh is a shell script that deletes the resources using Terraform.
 #   - Required permissions to delete resources
 # =============================================================================
 ```
-
 
 #### Reddit Data Collection and Preprocessing
 The foundation of our pipeline is reliable data collection and preprocessing. We utilize Python's Reddit API wrapper (PRAW) to fetch posts and comments from specified subreddits, with immediate text preprocessing for clean data storage.
@@ -315,7 +427,7 @@ Our post preprocessing involves several key steps: we filter out offensive conte
 
 ###### Comments Processing
 
-Similar to posts, we also preprocess Reddit comments to ensure data quality. The following code snippet demonstrates how we parse, filter, and clean comments stored in JSONB format:
+Similar to posts, we also preprocess Reddit comments to ensure data quality. The following code snippet demonstrates how we parse, filter, and clean comments stored in JSON format:
 
 ```python
 def preprocess_comments(df):
@@ -1366,6 +1478,7 @@ DBT tests are run to ensure the data is valid.
     - We monitor our pipeline with dedicated metrics tasks, using a StatsD exporter to send real-time data to Prometheus, and MLflow tracking for model performance.
 
 6. **Shutdown VM using Cloud Function**
+    We use a Cloud Function to shutdown the VM after the pipeline is complete.
    ```python    
     shutdown_vm = PythonOperator(
         task_id='shutdown_vm',
@@ -1398,7 +1511,8 @@ The orchestrator connects with BigQuery for pipeline data storage, local model d
 ##### 5. Cloud Function
 
 ###### 5.1. Start VM
-Cloud Function to start the VM is deployed using Cloud Run. 
+The Cloud Function to start the VM is deployed using Cloud Run.
+It ensures seamless startup of virtual machines on-demand, optimizing resource utilization.
 
 ```python
 # Create Flask app
@@ -1505,7 +1619,9 @@ def start_vm(request):
         return jsonify({'status': 'error', 'message': error_msg}), 500
 ```
 ###### 5.2. Stop VM
-Cloud Function to stop the VM is deployed using Cloud Run. 
+The Cloud Function to stop the VM is deployed using Cloud Run.
+This helps automate shutdown processes, reducing costs by powering down unused resources.
+
 ```python
 import os
 import json
