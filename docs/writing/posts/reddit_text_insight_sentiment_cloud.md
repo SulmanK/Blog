@@ -1332,89 +1332,89 @@ The Airflow services are deployed as separate containers, each with specific res
 
 1. **Airflow Webserver**
    ```yaml
-  airflow-webserver:
-    image: ${DOCKER_REGISTRY}/reddit-airflow-webserver:latest
-    <<: *airflow-common
-    depends_on:
-      airflow-init:
-        condition: service_completed_successfully
-    ports:
-      - "8080:8080"
-    command: airflow webserver
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 30s
-      retries: 10
-      start_period: 60s
-    restart: always
+   airflow-webserver:
+      image: ${DOCKER_REGISTRY}/reddit-airflow-webserver:latest
+      <<: *airflow-common
+      depends_on:
+        airflow-init:
+          condition: service_completed_successfully
+      ports:
+        - "8080:8080"
+      command: airflow webserver
+      healthcheck:
+        test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+        interval: 30s
+        timeout: 30s
+        retries: 10
+        start_period: 60s
+      restart: always
    ```
 Our Airflow webserver provides the web UI for DAG management and monitoring, handles user authentication and authorization, exposes REST API endpoints, and includes health checks to ensure UI availability.
 
 2. **Airflow Scheduler**
    ```yaml
-  airflow-scheduler:
-    image: ${DOCKER_REGISTRY}/reddit-airflow-scheduler:latest
-    <<: *airflow-common
-    depends_on:
-      airflow-webserver:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: airflow scheduler
-    healthcheck:
-      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
-      interval: 30s
-      timeout: 30s
-      retries: 10
-      start_period: 60s
-    restart: always
+   airflow-scheduler:
+      image: ${DOCKER_REGISTRY}/reddit-airflow-scheduler:latest
+      <<: *airflow-common
+      depends_on:
+        airflow-webserver:
+          condition: service_healthy
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
+      command: airflow scheduler
+      healthcheck:
+        test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+        interval: 30s
+        timeout: 30s
+        retries: 10
+        start_period: 60s
+      restart: always
    ```
 The Airflow scheduler monitors and triggers task execution, manages DAG parsing and scheduling, handles task dependencies and queuing, and ensures proper task distribution to workers. This component is crucial for orchestrating our data pipeline.
 
 3. **Airflow Worker**
    ```yaml
-  airflow-worker:
-    image: ${DOCKER_REGISTRY}/reddit-airflow-worker:latest
-    <<: *airflow-common
-    depends_on:
-      airflow-webserver:
-        condition: service_healthy
-    command: airflow celery worker
-    healthcheck:
-      test: ["CMD-SHELL", 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"']
-      interval: 30s
-      timeout: 30s
-      retries: 5
-    restart: always
+   airflow-worker:
+      image: ${DOCKER_REGISTRY}/reddit-airflow-worker:latest
+      <<: *airflow-common
+      depends_on:
+        airflow-webserver:
+          condition: service_healthy
+      command: airflow celery worker
+      healthcheck:
+        test: ["CMD-SHELL", 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"']
+        interval: 30s
+        timeout: 30s
+        retries: 5
+      restart: always
    ```
 Our Airflow worker executes the actual tasks, handles ML model inference, manages resource allocation, supports parallel task execution, and is configured for ML workloads with PyTorch and Transformers.
 
 4. **Airflow Init**
    ```yaml
-  airflow-init:
-    build:
-      context: .
-      dockerfile: Dockerfile.webserver
-    env_file:
-      - ../.env
-    <<: *airflow-common
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      <<: *common-env
-      GIT_PYTHON_REFRESH: quiet
-    command: >
-      bash -c "
-      airflow db init &&
-      airflow db upgrade &&
-      airflow users create -r Admin -u admin -p admin -e admin@example.com -f Anonymous -l Admin
-      "
+   airflow-init:
+      build:
+        context: .
+        dockerfile: Dockerfile.webserver
+      env_file:
+        - ../.env
+      <<: *airflow-common
+      depends_on:
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
+      environment:
+        <<: *common-env
+        GIT_PYTHON_REFRESH: quiet
+      command: >
+        bash -c "
+        airflow db init &&
+        airflow db upgrade &&
+        airflow users create -r Admin -u admin -p admin -e admin@example.com -f Anonymous -l Admin
+        "
    ```
 The Airflow init service initializes the Airflow database, creates an admin user, performs database migrations, and runs only during the initial setup. This component is essential for setting up the Airflow environment.
 
