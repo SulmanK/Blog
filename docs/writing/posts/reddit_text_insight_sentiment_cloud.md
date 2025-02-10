@@ -2143,6 +2143,7 @@ The pipeline successfully processes a thousand of Reddit posts daily, generates 
     - Distributed processing implementation
     - Enhanced caching mechanisms
     - API endpoint for analysis access
+    - Implement an OLAP database: use PostgreSQL to send the raw data to the OLAP database 
 3. **User Experience**
     - Interactive dashboard development
     - Customizable analysis parameters
