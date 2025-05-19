@@ -123,6 +123,16 @@ plugins:
       blog_dir: writing 
       blog_toc: true
       post_dir: writing/posts
+  - glightbox:
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      width: auto
+      height: auto
+      zoomable: true
+      draggable: true
+      auto_caption: true
+      caption_position: bottom
   - minify:
       minify_html: true
   - mkdocstrings:
