@@ -21,7 +21,7 @@ authors:
 !!! abstract "Purpose"
     This blog post documents the technical architecture and implementation of **Beat Debate**, a web application designed to analyze and compare musical elements using AI. We'll explore the journey from audio input to intelligent music analysis, powered by a modern full-stack architecture.
 
-    Check out the [project GitHub repository](#) for the full code and detailed documentation. Here is the [web application](#). 
+    Check out the [project GitHub repository](#) for the full code and detailed documentation. Here is the [web application](#). Check out the AgentX [course](https://llmagents-learning.org/sp25)
 
     <!-- more -->
 
