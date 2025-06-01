@@ -7,5 +7,6 @@ Hello, I'm Sulman Khan, a data scientist with experience in end-to-end machine l
 - [RecSys Challenge 2024: Model Selection](./writing/posts/recsys_2024_modeling.md)
 - [Reddit AI Pulse (On-Prem)](./writing/posts/reddit_text_insight_sentiment_local.md)
 - [Reddit AI Pulse (Cloud)](./writing/posts/reddit_text_insight_sentiment_cloud.md)
-* [Concept Visualizer](./writing/posts/concept_visualizer.md)
+- [Concept Visualizer](./writing/posts/concept_visualizer.md)
+* [Beat Debate: AI-Powered Music Analysis Tool](./writing/posts/beatdebate.md)
 
