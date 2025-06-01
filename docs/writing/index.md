@@ -5,5 +5,6 @@
 * [From Reddit to Insights: Building an AI-Powered Data Pipeline with Gemini (On-Prem)](./posts/reddit_text_insight_sentiment_local.md)
 * [From Reddit to Insights: Building an AI-Powered Data Pipeline with Gemini (Cloud)](./posts/reddit_text_insight_sentiment_cloud.md)
 * [Concept Visualizer: Full-stack web application to build logos ](./posts/concept_visualizer.md)
+* [Beat Debate: AI-Powered Music Analysis Tool](./posts/beatdebate.md)
 
 
