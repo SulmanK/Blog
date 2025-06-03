@@ -1,3 +1,10 @@
+To test the blog
+```bash
+mkdocs serve
+```
+
+
+
 MIT License
 
 Copyright (c) 2024 Jason Liu
