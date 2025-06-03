@@ -16,12 +16,11 @@ authors:
 ---
 
 # BeatDebate — Technical Deep Dive  
-*A planning-centric, multi-agent approach to explainable music recommendation*
 
 ## Introduction
 
 !!! abstract "Purpose"
-    BeatDebate is a proof-of-concept web app that shows how a **large-language-model (LLM) planner** can orchestrate specialised agents to deliver transparent, long-tail music recommendations in under seven seconds.  
+    BeatDebate is a proof-of-concept web app that shows how a **large-language-model (LLM) planner** can orchestrate specialised agents to deliver transparent, long-tail music recommendations in under seven seconds. 
 
     Check out the [project GitHub repository](https://github.com/SulmanK/BeatDebate) for the full code and detailed documentation. Here is the [web application](#). Check out the AgentX [course](https://llmagents-learning.org/sp25)
 
