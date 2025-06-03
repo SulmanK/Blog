@@ -22,7 +22,7 @@ authors:
 !!! abstract "Purpose"
     BeatDebate is a proof-of-concept web app that shows how a **large-language-model (LLM) planner** can orchestrate specialised agents to deliver transparent, long-tail music recommendations in under seven seconds. 
 
-    Check out the [project GitHub repository](https://github.com/SulmanK/BeatDebate) for the full code and detailed documentation. Here is the [web application](#). Check out the AgentX [course](https://llmagents-learning.org/sp25)
+    Check out the [project GitHub repository](https://github.com/SulmanK/BeatDebate) for the full code and detailed documentation. Here is the [web application](https://huggingface.co/spaces/SulmanK/BeatDebate). Check out the AgentX [course](https://llmagents-learning.org/sp25).
 
 !!! info "Problem Statement"
     Standard collaborative-filtering pipelines optimise clicks but amplify popularity bias and tell listeners nothing about *why* a song appears. BeatDebate flips the workflow: first an LLM writes an explicit machine-readable plan, then lightweight agents execute it, and finally a Judge agent converts plan weights into human-readable explanations.
@@ -42,7 +42,7 @@ authors:
 ![Architecture Diagram](./img/bd_arch_diagram.png)
 
 1. **User query** enters via a Gradio chat front-end.  
-2. **PlannerAgent** (Gemini-2.5 Flash) classifies intent, sets novelty/similarity weights, and emits a `planning_strategy` JSON.  
+2. **PlannerAgent** (Gemini-2.0 Flash) classifies intent, sets novelty/similarity weights, and emits a `planning_strategy` JSON.  
 3. **Genre-MoodAgent** fetches stylistically coherent tracks; **DiscoveryAgent** hunts low-playcount gems.  
 4. **JudgeAgent** ranks and explains using the Planner’s evaluation rubric.  
 5. Results stream back with Spotify previews.
@@ -165,7 +165,7 @@ class MusicRecommenderState(BaseModel):
         * **(`src/api/backend.py`):**
             * Exposes the primary HTTP endpoints (like `/recommendations`, `/planning`) for the Gradio frontend and potentially other clients.
 
-            * Handles request validation using Pydantic models defined in src/models/.
+            * Handles request validation using Pydantic models defined in `src/models/`.
 
             * Orchestrates calls to the EnhancedRecommendationService to initiate the agent workflow.
 
