@@ -42,12 +42,45 @@ authors:
 ![Architecture Diagram](./img/bd_arch_diagram.png)
 
 1. **User query** enters via a Gradio chat front-end.  
-2. **PlannerAgent** (Gemini-2.0 Flash) classifies intent, sets novelty/similarity weights, and emits a `planning_strategy` JSON.  
+2. **PlannerAgent** (Gemini-2.0 Flash) classifies intent, sets novelty/similarity weights, and emits a `planning_strategy` JSON.  A planner-agent system excels at translating that goal into a concrete, executable strategy.
 3. **Genre-MoodAgent** fetches stylistically coherent tracks; **DiscoveryAgent** hunts low-playcount gems.  
 4. **JudgeAgent** ranks and explains using the Planner’s evaluation rubric.  
 5. Results stream back with Spotify previews.
 
 LangGraph moves a single `MusicRecommenderState` object through the graph, enforcing type safety and providing span-level tracing.
+
+
+## Scoring & Ranking: The Judge's Deliberation
+
+The heart of BeatDebate's decision-making lies in its two-stage evaluation process, handled by the JudgeAgent. This process is designed to be both intelligent and adaptable, moving beyond a single, rigid algorithm to dynamically define a "good" recommendation based on the user's specific intent.
+
+### Stage 1: Component-Based Scoring
+
+Before ranking, each potential track is evaluated across multiple dimensions by a ComprehensiveQualityScorer. This creates a 360-degree profile for every song:
+
+- **Quality Score:** Measures intrinsic musical quality using characteristics like energy, danceability, and emotional positivity (valence). This ensures we recommend well-produced and musically sound tracks.
+
+- **Novelty / Underground Score:** This is the core "discovery" metric. Calculated from Last.fm listener and play-count data, a high novelty score indicates a track is likely an underground gem the user hasn't heard before. This directly combats the "filter bubble" of mainstream platforms.
+
+- **Contextual Relevance Score:** Quantifies how well a track's metadata (artist, genre, tags) aligns with the user's query. If a user asks for "sad indie," this score is high for tracks matching those terms.
+
+- **Similarity Score:** For "music like X" queries, this score measures stylistic and sonic similarity, often using multi-hop artist connections to find nuanced and surprising links.
+
+At the end of this stage, every candidate track has a rich profile of scores (e.g., Quality: 0.8, Novelty: 0.9, Relevance: 0.7).
+
+### Stage 2: Intent-Aware Ranking
+
+This is the system's strategic core. The "best" track for a discovery query is fundamentally different from the "best" track for a by artist query. The RankingEngine calculates a final weighted score, but the weights are provided by the PlannerAgent's strategy and change based on the user's intent.
+The power of the planning-centric approach becomes clear when observing how the `JudgeAgent`'s evaluation criteria adapt to different user intents. The `PlannerAgent` dynamically assigns different scoring weights based on the classified intent, ensuring the final recommendations are optimized for the user's specific goal. The table below illustrates this adaptive ranking strategy.
+
+| If the User Asks For... | The Planner's Strategy Prioritizes... | Why This is Beneficial |
+| :--- | :--- | :--- |
+| **"Underground electronic music"**<br/>(Intent: `DISCOVERY`) | **Novelty**: 50% <br/> **Underground**: 30% <br/> **Quality**: 15% | The system understands the primary goal is finding something new. It heavily rewards tracks with low play-counts and intentionally de-prioritizes popular hits. |
+| **"Music by The Beatles"**<br/>(Intent: `BY_ARTIST`) | **Quality**: 50% <br/> **Popularity**: 30% <br/> **Recency**: 20% | The system focuses on the artist's most well-regarded and popular songs. **Novelty is ignored**, and popularity is rewarded to provide representative tracks. |
+| **"Music like Kendrick Lamar but jazzy"**<br/>(Intent: `HYBRID_SIMILARITY_GENRE`) | **Relevance**: 45% <br/> **Quality**: 30% <br/> **Diversity**: 15% | The system's main goal is to find tracks that match *both* constraints. It prioritizes the relevance score and **ignores novelty** to find the best examples of this genre fusion. |
+| **"Music for studying"**<br/>(Intent: `CONTEXTUAL`) | **Context Fit**: 60% <br/> **Quality**: 25% <br/> **Familiarity**: 15% | The system understands this is a functional request. It prioritizes tracks that fit the "studying" context (e.g., instrumental, low energy) and slightly favors familiar but not mainstream tracks, which can be less distracting. |
+
+
 
 ## Getting Started
 
