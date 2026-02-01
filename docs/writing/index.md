@@ -6,6 +6,6 @@
 * [From Reddit to Insights: Building an AI-Powered Data Pipeline with Gemini (Cloud)](./posts/reddit_text_insight_sentiment_cloud.md)
 * [Concept Visualizer: Full-stack web application to build logos ](./posts/concept_visualizer.md)
 * [Beat Debate: AI-Powered Music Analysis Tool](./posts/beatdebate.md)
-* [Werewolf as a Social-Deduction Benchmark in AgentBeats](./posts/werewolf_agentbeats.md)
+* [Werewolf Arena Benchmark: An Agentic Social Deduction Benchmark](./posts/werewolf_agentbeats.md)
 
 

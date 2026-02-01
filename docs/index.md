@@ -9,5 +9,5 @@ Hello, I'm Sulman Khan, a data scientist with experience in end-to-end machine l
 - [Reddit AI Pulse (Cloud)](./writing/posts/reddit_text_insight_sentiment_cloud.md)
 - [Concept Visualizer](./writing/posts/concept_visualizer.md)
 - [Beat Debate: AI-Powered Music Analysis Tool](./writing/posts/beatdebate.md)
-- [Werewolf as a Social-Deduction Benchmark in AgentBeats](./writing/posts/werewolf_agentbeats.md)
+- [Werewolf Arena Benchmark: An Agentic Social Deduction Benchmark](./writing/posts/werewolf_agentbeats.md)
 

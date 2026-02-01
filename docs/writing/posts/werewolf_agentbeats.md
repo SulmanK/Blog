@@ -14,7 +14,7 @@ authors:
   - sulmank
 ---
 
-# Werewolf as a Social-Deduction Benchmark in AgentBeats
+# Werewolf Arena Benchmark: An Agentic Social Deduction Benchmark
 
 ## Introduction
 
@@ -22,7 +22,7 @@ authors:
     Most LLM benchmarks sit in safe territory: code, math, or single-turn QA. Useful, but narrow. Social intelligence - deception, persuasion, coordination under uncertainty - is a different axis. Werewolf (Mafia) is a compact testbed for it, forcing agents to reason with hidden roles, influence votes, and adapt as information unfolds.
 
 !!! info "Problem Statement"
-    Werewolf is a strong social‑deduction benchmark because it forces agents to reason under hidden roles, persuade others in public dialogue, and adapt as partial information accumulates. A single misvote can swing the game, so decision quality, consistency, and role‑specific play matter as much as raw win rate. Recent work like Werewolf Arena (2024) and WereWolf‑Plus (2025) shows what this benchmark can capture and motivates a more reproducible, community‑friendly evaluation stack. (Papers: [Werewolf Arena](https://arxiv.org/abs/2407.13943), [WereWolf-Plus](https://arxiv.org/abs/2506.12841v1))
+    Werewolf is a strong social-deduction benchmark because it forces agents to reason under hidden roles, persuade others in public dialogue, and adapt as partial information accumulates. A single misvote can swing the game, so decision quality, consistency, and role-specific play matter as much as raw win rate. Recent work like Werewolf Arena (2024) and WereWolf-Plus (2025) shows what this benchmark can capture and motivates a more reproducible, community-friendly evaluation stack. (Papers: [Werewolf Arena](https://arxiv.org/abs/2407.13943), [WereWolf-Plus](https://arxiv.org/abs/2506.12841v1))
 
 ### **What you'll learn**
 
@@ -37,6 +37,9 @@ authors:
 ## Game rules (benchmark settings)
 ![Werewolf game table](./img/werewolf_game.png)
 
+**How Werewolf tests social reasoning**
+Hidden roles force agents to argue, read intent, and influence others under uncertainty. Winning can hinge on a few key votes, so strategy, persuasion, and consistency matter more than raw luck. That's why win rate alone is thin: two agents can win equally often but differ sharply in vote quality, role inference, and misvote rates.
+
 **Game settings**
 - Player count: 8
 - Role distribution: 2 Werewolves, 1 Doctor, 1 Seer, 4 Villagers
@@ -47,11 +50,8 @@ authors:
 - Villagers win if both werewolves are exiled.
 
 **Night and day cycle**
-- **Night:** Special roles act simultaneously. Werewolves choose a target to eliminate, the Doctor protects a player, and the Seer investigates a player. The outcome is announced before day begins.
-- **Day:** Players debate (with a bid-to-speak flow), then vote, and the voted-out player is exiled.
-
-**How Werewolf tests social reasoning**
-Hidden roles force agents to argue, read intent, and influence others under uncertainty. Winning can hinge on a few key votes, so strategy, persuasion, and consistency matter more than raw luck. That's why win rate alone is thin: two agents can win equally often but differ sharply in vote quality, role inference, and misvote rates.
+- **Night:** Werewolves eliminate, Doctor protects, Seer investigates. Outcome announced before day.
+- **Day:** Debate (bid-to-speak), then vote; highest vote is exiled.
 
 ## Related work: what the papers do (and don't)
 
@@ -85,6 +85,14 @@ AgentBeats is built around interoperability, reproducibility, and discoverabilit
 
 This bridges paper-level benchmarks and the operational needs of a community evaluation platform.  
 
+## Project overview
+
+This project implements a reproducible Werewolf benchmark on AgentBeats, with a clear separation between evaluator and assessee:
+
+- **Green agent**: the evaluator. It orchestrates multi-game runs, records game traces, and computes metrics.  
+- **Purple agent**: the assessee. It implements the A2A protocol and makes decisions in the game.  
+- **Leaderboard repo**: a GitHub-based, reproducible submission pipeline where results are merged and displayed.  
+
 **A2A protocol (why it matters)**  
 A2A is the contract between the benchmark (green agent) and the assessee (purple agent). It standardizes how observations are sent and how actions are returned, so any agent can plug into the benchmark without custom glue code. Short version: A2A makes agents portable and benchmarks consistent.
 
@@ -94,14 +102,6 @@ In practice, it means:
 - The same agent can be evaluated across different benchmarks with no changes (standardization).
 - Runs are reproducible and auditable because the message format is consistent (reproducibility).
 - It cleanly separates evaluator vs. assessee, which is a core AgentBeats design goal.
-
-## Project overview
-
-This project implements a reproducible Werewolf benchmark on AgentBeats, with a clear separation between evaluator and assessee:
-
-- **Green agent**: the evaluator. It orchestrates multi-game runs, records game traces, and computes metrics.  
-- **Purple agent**: the assessee. It implements the A2A protocol and makes decisions in the game.  
-- **Leaderboard repo**: a GitHub-based, reproducible submission pipeline where results are merged and displayed.  
 
 ![Architecture diagram](./img/werewolf_architecture.svg)
 
