@@ -40,18 +40,18 @@ authors:
 **How Werewolf tests social reasoning**
 Hidden roles force agents to argue, read intent, and influence others under uncertainty. Winning can hinge on a few key votes, so strategy, persuasion, and consistency matter more than raw luck. That's why win rate alone is thin: two agents can win equally often but differ sharply in vote quality, role inference, and misvote rates.
 
-**Game settings**
-- Player count: 8
-- Role distribution: 2 Werewolves, 1 Doctor, 1 Seer, 4 Villagers
-- Debate length: 8 turns
+- **Game settings**
+    - **Player count:** 8
+    - **Role distribution:** 2 Werewolves, 1 Doctor, 1 Seer, 4 Villagers
+    - **Debate length:** 8 turns
 
-**Win conditions**
-- Werewolves win if the number of werewolves is greater than or equal to non-werewolves.
-- Villagers win if both werewolves are exiled.
+- **Win conditions**
+    - **Werewolves win if:** number of werewolves is greater than or equal to non-werewolves.
+    - **Villagers win if:** both werewolves are exiled.
 
-**Night and day cycle**
-- **Night:** Werewolves eliminate, Doctor protects, Seer investigates. Outcome announced before day.
-- **Day:** Debate (bid-to-speak), then vote; highest vote is exiled.
+- **Night and day cycle**
+    - **Night:** Werewolves eliminate, Doctor protects, Seer investigates. Outcome announced before day.
+    - **Day:** Debate (bid-to-speak), then vote; highest vote is exiled.
 
 ## Related work: what the papers do (and don't)
 
