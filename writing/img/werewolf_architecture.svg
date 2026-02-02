@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320">
+  <style>
+    .box { fill: #f7f7f7; stroke: #222; stroke-width: 2; }
+    .title { font: 22px Arial, sans-serif; fill: #111; }
+    .label { font: 18px Arial, sans-serif; fill: #111; }
+    .small { font: 14px Arial, sans-serif; fill: #333; }
+    .arrow { stroke: #111; stroke-width: 2.5; marker-end: url(#arrowhead); }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#111" />
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="320" fill="#ffffff"/>
+  <text x="40" y="35" class="title">AgentBeats Benchmark Architecture</text>
+
+  <rect x="60" y="80" width="240" height="90" rx="8" class="box"/>
+  <text x="80" y="115" class="label">Green Agent</text>
+  <text x="80" y="140" class="small">Evaluator / Runner</text>
+
+  <rect x="480" y="80" width="240" height="90" rx="8" class="box"/>
+  <text x="510" y="115" class="label">A2A Protocol</text>
+  <text x="510" y="140" class="small">Observations ↔ Actions</text>
+
+  <rect x="900" y="80" width="240" height="90" rx="8" class="box"/>
+  <text x="920" y="115" class="label">Purple Agent</text>
+  <text x="920" y="140" class="small">Assessee</text>
+
+  <line x1="300" y1="125" x2="480" y2="125" class="arrow"/>
+  <line x1="720" y1="125" x2="900" y2="125" class="arrow"/>
+
+  <rect x="420" y="210" width="360" height="80" rx="8" class="box"/>
+  <text x="440" y="245" class="label">Leaderboard Repo</text>
+  <text x="440" y="270" class="small">Submissions + Results</text>
+
+  <line x1="180" y1="170" x2="520" y2="210" class="arrow"/>
+  <line x1="1020" y1="170" x2="680" y2="210" class="arrow"/>
+</svg>
