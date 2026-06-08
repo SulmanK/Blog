@@ -1,4 +1,4 @@
-# Writing
+﻿# Writing
 * [Recommendation Systems: Overview](./posts/recsys_overview.md)
 * [RecSys Challenge 2024: Exploratory Data Analysis](./posts/recsys_2024_eda.md)
 * [RecSys Challenge 2024: Model Selection](./posts/recsys_2024_modeling.md)
@@ -7,5 +7,5 @@
 * [Concept Visualizer: Full-stack web application to build logos ](./posts/concept_visualizer.md)
 * [Beat Debate: AI-Powered Music Analysis Tool](./posts/beatdebate.md)
 * [Werewolf Arena Benchmark: An Agentic Social Deduction Benchmark](./posts/werewolf_agentbeats.md)
-
+* [InferenceOps: Building a Reproducible LLM Serving Lab](./posts/inferenceops.md)
 

@@ -1,0 +1,62 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
+  <title id="title">InferenceOps architecture</title>
+  <desc id="desc">Trace replay drives routers and controllers, which send OpenAI-compatible requests to vLLM, SGLang Gateway, and vLLM Production Stack workers. Artifacts and metrics are collected for comparison.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#30343b"/>
+    </marker>
+    <style>
+      .bg{fill:#f7f8fb}.band{fill:#ffffff;stroke:#d8dee9;stroke-width:2}.box{fill:#ffffff;stroke:#30343b;stroke-width:2;rx:8}.accent{fill:#eef6ff;stroke:#2563eb}.green{fill:#eefbf3;stroke:#15803d}.amber{fill:#fff7ed;stroke:#c2410c}.purple{fill:#f5f3ff;stroke:#7c3aed}.text{font-family:Roboto,Arial,sans-serif;fill:#111827}.h{font-size:23px;font-weight:700}.m{font-size:18px;font-weight:700}.s{font-size:14px}.xs{font-size:12px;fill:#4b5563}.line{stroke:#30343b;stroke-width:2.2;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect class="bg" width="1100" height="620"/>
+  <text class="text h" x="42" y="48">InferenceOps: reproducible LLM serving benchmark</text>
+  <text class="text s" x="42" y="75">Deterministic traces, real GPU serving backends, bounded routing policies, and normalized artifacts.</text>
+
+  <rect class="band" x="35" y="105" width="225" height="390" rx="10"/>
+  <text class="text m" x="60" y="138">Workload Layer</text>
+  <rect class="box accent" x="60" y="170" width="175" height="74"/>
+  <text class="text m" x="82" y="200">Trace Pack</text>
+  <text class="text xs" x="82" y="224">prompts, arrivals, seeds</text>
+  <rect class="box accent" x="60" y="280" width="175" height="74"/>
+  <text class="text m" x="82" y="310">Replay Harness</text>
+  <text class="text xs" x="82" y="334">OpenAI-compatible API</text>
+
+  <rect class="band" x="315" y="105" width="250" height="390" rx="10"/>
+  <text class="text m" x="342" y="138">Control Layer</text>
+  <rect class="box purple" x="342" y="170" width="195" height="74"/>
+  <text class="text m" x="365" y="200">Router</text>
+  <text class="text xs" x="365" y="224">SGLang / vLLM router</text>
+  <rect class="box purple" x="342" y="280" width="195" height="84"/>
+  <text class="text m" x="365" y="310">Controllers</text>
+  <text class="text xs" x="365" y="334">static, heuristic, bounded</text>
+  <text class="text xs" x="365" y="352">agentic policy actions</text>
+
+  <rect class="band" x="620" y="105" width="430" height="390" rx="10"/>
+  <text class="text m" x="650" y="138">Serving Layer</text>
+  <rect class="box green" x="650" y="170" width="170" height="74"/>
+  <text class="text m" x="676" y="200">vLLM</text>
+  <text class="text xs" x="676" y="224">single GPU baseline</text>
+  <rect class="box green" x="850" y="170" width="170" height="74"/>
+  <text class="text m" x="874" y="200">SGLang</text>
+  <text class="text xs" x="874" y="224">two-worker gateway</text>
+  <rect class="box amber" x="650" y="300" width="370" height="112"/>
+  <text class="text m" x="678" y="331">vLLM Production Stack on k3s</text>
+  <text class="text xs" x="678" y="357">two A100 nodes, GPU scheduling, Helm, router service</text>
+  <text class="text xs" x="678" y="379">fixed PVC node-affinity issue with per-model deployments</text>
+
+  <rect class="box" x="355" y="525" width="390" height="58"/>
+  <text class="text m" x="383" y="552">Artifacts + Metrics</text>
+  <text class="text xs" x="383" y="574">JSONL results, summaries, p95/p99 latency, run reports, cluster state</text>
+
+  <path class="line" d="M147 244 L147 280"/>
+  <path class="line" d="M235 317 L342 207"/>
+  <path class="line" d="M440 244 L440 280"/>
+  <path class="line" d="M537 207 L650 207"/>
+  <path class="line" d="M537 207 L850 207"/>
+  <path class="line" d="M537 322 L650 356"/>
+  <path class="line" d="M735 244 L735 300"/>
+  <path class="line" d="M835 412 L650 525"/>
+  <path class="line" d="M440 364 L520 525"/>
+  <path class="line" d="M147 354 L430 525"/>
+</svg>
