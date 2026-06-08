@@ -1,4 +1,4 @@
-# About Me
+﻿# About Me
 Hello, I'm Sulman Khan, a data scientist with experience in end-to-end machine learning projects. I'm passionate about AI/ML, and I'll be showcasing my latest projects here. Feel free to examine my [portfolio](https://sulmank.github.io/) for more details. 
 
 ## [Writing](./writing/index.md)
@@ -10,4 +10,5 @@ Hello, I'm Sulman Khan, a data scientist with experience in end-to-end machine l
 - [Concept Visualizer](./writing/posts/concept_visualizer.md)
 - [Beat Debate: AI-Powered Music Analysis Tool](./writing/posts/beatdebate.md)
 - [Werewolf Arena Benchmark: An Agentic Social Deduction Benchmark](./writing/posts/werewolf_agentbeats.md)
+- [InferenceOps: Building a Reproducible LLM Serving Lab](./writing/posts/inferenceops.md)
 
